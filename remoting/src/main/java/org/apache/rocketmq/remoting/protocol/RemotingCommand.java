@@ -116,6 +116,7 @@ public class RemotingCommand {
         cmd.markResponseType();
         cmd.setCode(code);
         cmd.setRemark(remark);
+        // 设置version
         setCmdVersion(cmd);
 
         if (classHeader != null) {

@@ -36,8 +36,9 @@ public class Configuration {
     private String storePath;
     private boolean storePathFromConfig = false;
     private Object storePathObject;
-    private Field storePathField;
+    private Field storePathField;//properties  本地保存位置
     private DataVersion dataVersion = new DataVersion();
+    // 读写锁
     private ReadWriteLock readWriteLock = new ReentrantReadWriteLock();
     /**
      * All properties include configs in object and extend properties.
@@ -73,11 +74,11 @@ public class Configuration {
             readWriteLock.writeLock().lockInterruptibly();
 
             try {
-
+                // 将对象转成 properties
                 Properties registerProps = MixAll.object2Properties(configObject);
-
+                // 合并properties
                 merge(registerProps, this.allConfigs);
-
+                // 放到list中
                 configObjectList.add(configObject);
             } finally {
                 readWriteLock.writeLock().unlock();
@@ -122,12 +123,13 @@ public class Configuration {
         assert object != null;
 
         try {
+            // 获取写锁
             readWriteLock.writeLock().lockInterruptibly();
 
             try {
                 this.storePathFromConfig = true;
                 this.storePathObject = object;
-                // check
+                // check 赋值 ， 然后检查
                 this.storePathField = object.getClass().getDeclaredField(fieldName);
                 assert this.storePathField != null
                     && !Modifier.isStatic(this.storePathField.getModifiers());
@@ -135,6 +137,7 @@ public class Configuration {
             } catch (NoSuchFieldException e) {
                 throw new RuntimeException(e);
             } finally {
+                // 释放写锁
                 readWriteLock.writeLock().unlock();
             }
         } catch (InterruptedException e) {

@@ -44,6 +44,7 @@ public class KVConfigManager {
     public void load() {
         String content = null;
         try {
+
             content = MixAll.file2String(this.namesrvController.getNamesrvConfig().getKvConfigPath());
         } catch (IOException e) {
             log.warn("Load KV config table exception", e);
@@ -134,7 +135,7 @@ public class KVConfigManager {
     public byte[] getKVListByNamespace(final String namespace) {
         try {
             this.lock.readLock().lockInterruptibly();
-            try {
+            try {// 获取某个命名空间的configTable
                 HashMap<String, String> kvTable = this.configTable.get(namespace);
                 if (null != kvTable) {
                     KVTable table = new KVTable();

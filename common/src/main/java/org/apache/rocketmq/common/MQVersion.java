@@ -16,10 +16,19 @@
  */
 package org.apache.rocketmq.common;
 
+
+/**
+ * mq 版本类
+ */
 public class MQVersion {
 
     public static final int CURRENT_VERSION = Version.V4_4_0.ordinal();
 
+    /**
+     * 根据value 获取具体的
+     * @param value
+     * @return
+     */
     public static String getVersionDesc(int value) {
         int length = Version.values().length;
         if (value >= length) {
@@ -29,6 +38,12 @@ public class MQVersion {
         return Version.values()[value].name();
     }
 
+    /**
+     * 将value 转成 version
+     * value 大于 version 数组的长度，就用最后一个位置，否则就去具体value位置的version
+     * @param value
+     * @return
+     */
     public static Version value2Version(int value) {
         int length = Version.values().length;
         if (value >= length) {
