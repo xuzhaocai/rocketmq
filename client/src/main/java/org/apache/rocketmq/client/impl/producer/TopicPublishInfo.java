@@ -25,8 +25,8 @@ import org.apache.rocketmq.common.protocol.route.TopicRouteData;
 
 public class TopicPublishInfo {
     private boolean orderTopic = false;
-    private boolean haveTopicRouterInfo = false;
-    private List<MessageQueue> messageQueueList = new ArrayList<MessageQueue>();
+    private boolean haveTopicRouterInfo = false;// 是否有 topicRouter信息
+    private List<MessageQueue> messageQueueList = new ArrayList<MessageQueue>();// message queue集合
     private volatile ThreadLocalIndex sendWhichQueue = new ThreadLocalIndex();
     private TopicRouteData topicRouteData;
 
@@ -38,7 +38,7 @@ public class TopicPublishInfo {
         this.orderTopic = orderTopic;
     }
 
-    public boolean ok() {
+    public boolean ok() {/// message queue 集合不是空，有message queue
         return null != this.messageQueueList && !this.messageQueueList.isEmpty();
     }
 
@@ -65,26 +65,26 @@ public class TopicPublishInfo {
     public void setHaveTopicRouterInfo(boolean haveTopicRouterInfo) {
         this.haveTopicRouterInfo = haveTopicRouterInfo;
     }
-
+    // 选择一个消息队列
     public MessageQueue selectOneMessageQueue(final String lastBrokerName) {
-        if (lastBrokerName == null) {
+        if (lastBrokerName == null) {// 一般发送消息第一次的时候，这时候还没有重试，而且之前也没有选择过
             return selectOneMessageQueue();
-        } else {
+        } else {// 这个一般出现在重试的时候
             int index = this.sendWhichQueue.getAndIncrement();
             for (int i = 0; i < this.messageQueueList.size(); i++) {
                 int pos = Math.abs(index++) % this.messageQueueList.size();
                 if (pos < 0)
                     pos = 0;
                 MessageQueue mq = this.messageQueueList.get(pos);
-                if (!mq.getBrokerName().equals(lastBrokerName)) {
+                if (!mq.getBrokerName().equals(lastBrokerName)) {// 这个时候需要判断上次那个broker，这次选择会避开上次那个broker，
                     return mq;
                 }
-            }
+            }// 到最后没避开，只能认命了，随机选一个了
             return selectOneMessageQueue();
         }
     }
 
-    public MessageQueue selectOneMessageQueue() {
+    public MessageQueue selectOneMessageQueue() {// 相当于某个线程的轮询
         int index = this.sendWhichQueue.getAndIncrement();
         int pos = Math.abs(index) % this.messageQueueList.size();
         if (pos < 0)

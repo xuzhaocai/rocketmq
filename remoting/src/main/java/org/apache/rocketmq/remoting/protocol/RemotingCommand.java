@@ -69,17 +69,17 @@ public class RemotingCommand {
         }
     }
 
-    private int code;
-    private LanguageCode language = LanguageCode.JAVA;
-    private int version = 0;
-    private int opaque = requestId.getAndIncrement();
+    private int code;// 标志
+    private LanguageCode language = LanguageCode.JAVA;//语言
+    private int version = 0;//版本
+    private int opaque = requestId.getAndIncrement();// id
     private int flag = 0;
     private String remark;
     private HashMap<String, String> extFields;
-    private transient CommandCustomHeader customHeader;
-
+    private transient CommandCustomHeader customHeader;//自定义的一个头
+    // 序列化类型
     private SerializeType serializeTypeCurrentRPC = serializeTypeConfigInThisServer;
-
+    // 内容
     private transient byte[] body;
 
     protected RemotingCommand() {
@@ -232,6 +232,12 @@ public class RemotingCommand {
         this.customHeader = customHeader;
     }
 
+    /**
+     * 解码 响应头
+     * @param classHeader
+     * @return
+     * @throws RemotingCommandException
+     */
     public CommandCustomHeader decodeCommandCustomHeader(
         Class<? extends CommandCustomHeader> classHeader) throws RemotingCommandException {
         CommandCustomHeader objectHeader;

@@ -98,7 +98,7 @@ public class MessageClientIDSetter {
         System.arraycopy(bytes, 0, result, 0, 4);
         return result;
     }
-
+    // 创建唯一的id
     public static String createUniqID() {
         StringBuilder sb = new StringBuilder(LEN * 2);
         sb.append(FIX_STRING);

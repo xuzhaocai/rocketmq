@@ -75,7 +75,7 @@ public class Validators {
     }
 
     /**
-     * Validate message
+     * Validate message  检查消息
      */
     public static void checkMessage(Message msg, DefaultMQProducer defaultMQProducer)
         throws MQClientException {
@@ -84,16 +84,16 @@ public class Validators {
         }
         // topic
         Validators.checkTopic(msg.getTopic());
-
+        // 不能发送空的 message ，也就是不能发送 body是null的或者空字符串
         // body
         if (null == msg.getBody()) {
             throw new MQClientException(ResponseCode.MESSAGE_ILLEGAL, "the message body is null");
         }
-
+        // body不能是空字符串
         if (0 == msg.getBody().length) {
             throw new MQClientException(ResponseCode.MESSAGE_ILLEGAL, "the message body length is zero");
         }
-
+        // 消息长度不能超了4m
         if (msg.getBody().length > defaultMQProducer.getMaxMessageSize()) {
             throw new MQClientException(ResponseCode.MESSAGE_ILLEGAL,
                 "the message body size over max value, MAX: " + defaultMQProducer.getMaxMessageSize());
@@ -101,23 +101,23 @@ public class Validators {
     }
 
     /**
-     * Validate topic
+     * Validate topic  检查topic
      */
     public static void checkTopic(String topic) throws MQClientException {
         if (UtilAll.isBlank(topic)) {
             throw new MQClientException("The specified topic is blank", null);
         }
-
+        //
         if (!regularExpressionMatcher(topic, PATTERN)) {
             throw new MQClientException(String.format(
                 "The specified topic[%s] contains illegal characters, allowing only %s", topic,
                 VALID_PATTERN_STR), null);
         }
-
+        // topic 长度不能大于255
         if (topic.length() > CHARACTER_MAX_LENGTH) {
             throw new MQClientException("The specified topic is longer than topic max length 255.", null);
         }
-
+        // topic不能是默认的TBW102
         //whether the same with system reserved keyword
         if (topic.equals(MixAll.AUTO_CREATE_TOPIC_KEY_TOPIC)) {
             throw new MQClientException(

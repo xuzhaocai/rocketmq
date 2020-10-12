@@ -42,15 +42,19 @@ public abstract class ServiceThread implements Runnable {
 
     public abstract String getServiceName();
 
+    /**
+     * 启动任务
+     */
     public void start() {
         log.info("Try to start service thread:{} started:{} lastThread:{}", getServiceName(), started.get(), thread);
-        if (!started.compareAndSet(false, true)) {
+        if (!started.compareAndSet(false, true)) {// 设置启动状态
             return;
         }
-        stopped = false;
+        stopped = false;// 停止状态
+        // 创建线程
         this.thread = new Thread(this, getServiceName());
-        this.thread.setDaemon(isDaemon);
-        this.thread.start();
+        this.thread.setDaemon(isDaemon);// 设置守护线程
+        this.thread.start();//启动线程
     }
 
     public void shutdown() {

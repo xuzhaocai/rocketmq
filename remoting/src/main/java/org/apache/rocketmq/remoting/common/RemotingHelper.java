@@ -52,6 +52,11 @@ public class RemotingHelper {
         return sb.toString();
     }
 
+    /**
+     * 将 字符串的 addr 转成  SocketAddress
+     * @param addr  127.0.0.1:9876
+     * @return
+     */
     public static SocketAddress string2SocketAddress(final String addr) {
         String[] s = addr.split(":");
         InetSocketAddress isa = new InetSocketAddress(s[0], Integer.parseInt(s[1]));

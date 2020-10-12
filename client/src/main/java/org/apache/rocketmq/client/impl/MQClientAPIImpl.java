@@ -227,8 +227,9 @@ public class MQClientAPIImpl {
         List<String> list = Arrays.asList(addrArray);
         this.remotingClient.updateNameServerAddressList(list);
     }
-
+    //启动
     public void start() {
+        // 远程客户端 启动
         this.remotingClient.start();
     }
 
@@ -288,6 +289,21 @@ public class MQClientAPIImpl {
         throw new MQClientException(response.getCode(), response.getRemark());
     }
 
+    /**
+     * 发送消息
+     * @param addr  地址
+     * @param brokerName  broker name
+     * @param msg  消息
+     * @param requestHeader  请求头
+     * @param timeoutMillis  超时时间
+     * @param communicationMode  发送模式
+     * @param context
+     * @param producer producer
+     * @return
+     * @throws RemotingException
+     * @throws MQBrokerException
+     * @throws InterruptedException
+     */
     public SendResult sendMessage(
         final String addr,
         final String brokerName,
@@ -298,9 +314,29 @@ public class MQClientAPIImpl {
         final SendMessageContext context,
         final DefaultMQProducerImpl producer
     ) throws RemotingException, MQBrokerException, InterruptedException {
+
         return sendMessage(addr, brokerName, msg, requestHeader, timeoutMillis, communicationMode, null, null, null, 0, context, producer);
     }
 
+    /**
+     *  发送消息
+     * @param addr 地址
+     * @param brokerName  broker name
+     * @param msg  消息
+     * @param requestHeader 请求header
+     * @param timeoutMillis 超时时间
+     * @param communicationMode  发送模式
+     * @param sendCallback  发送回调
+     * @param topicPublishInfo topic 信息
+     * @param instance   mq 客户端实例
+     * @param retryTimesWhenSendFailed 发送失败重试次数
+     * @param context
+     * @param producer
+     * @return
+     * @throws RemotingException
+     * @throws MQBrokerException
+     * @throws InterruptedException
+     */
     public SendResult sendMessage(
         final String addr,
         final String brokerName,
@@ -315,8 +351,12 @@ public class MQClientAPIImpl {
         final SendMessageContext context,
         final DefaultMQProducerImpl producer
     ) throws RemotingException, MQBrokerException, InterruptedException {
+
+
+
         long beginStartTime = System.currentTimeMillis();
         RemotingCommand request = null;
+        // sendSmartMsg 这个是默认开启的，这个东西算是一种优化吧
         if (sendSmartMsg || msg instanceof MessageBatch) {
             SendMessageRequestHeaderV2 requestHeaderV2 = SendMessageRequestHeaderV2.createSendMessageRequestHeaderV2(requestHeader);
             request = RemotingCommand.createRequestCommand(msg instanceof MessageBatch ? RequestCode.SEND_BATCH_MESSAGE : RequestCode.SEND_MESSAGE_V2, requestHeaderV2);
@@ -327,11 +367,12 @@ public class MQClientAPIImpl {
         request.setBody(msg.getBody());
 
         switch (communicationMode) {
-            case ONEWAY:
+            case ONEWAY: // 单向发送
                 this.remotingClient.invokeOneway(addr, request, timeoutMillis);
                 return null;
-            case ASYNC:
+            case ASYNC:// 异步发送
                 final AtomicInteger times = new AtomicInteger();
+                // 判断超时时间
                 long costTimeAsync = System.currentTimeMillis() - beginStartTime;
                 if (timeoutMillis < costTimeAsync) {
                     throw new RemotingTooMuchRequestException("sendMessage call timeout");
@@ -339,11 +380,13 @@ public class MQClientAPIImpl {
                 this.sendMessageAsync(addr, brokerName, msg, timeoutMillis - costTimeAsync, request, sendCallback, topicPublishInfo, instance,
                     retryTimesWhenSendFailed, times, context, producer);
                 return null;
-            case SYNC:
+            case SYNC:// 同步发送
+                // 判断超时时间
                 long costTimeSync = System.currentTimeMillis() - beginStartTime;
                 if (timeoutMillis < costTimeSync) {
                     throw new RemotingTooMuchRequestException("sendMessage call timeout");
                 }
+                // 同步发送
                 return this.sendMessageSync(addr, brokerName, msg, timeoutMillis - costTimeSync, request);
             default:
                 assert false;
@@ -353,6 +396,18 @@ public class MQClientAPIImpl {
         return null;
     }
 
+    /**
+     * 同步发送
+     * @param addr 地址
+     * @param brokerName  broker name
+     * @param msg 消息
+     * @param timeoutMillis  超时时间
+     * @param request  请求实体
+     * @return
+     * @throws RemotingException
+     * @throws MQBrokerException
+     * @throws InterruptedException
+     */
     private SendResult sendMessageSync(
         final String addr,
         final String brokerName,
@@ -360,8 +415,10 @@ public class MQClientAPIImpl {
         final long timeoutMillis,
         final RemotingCommand request
     ) throws RemotingException, MQBrokerException, InterruptedException {
+        // 同步调用
         RemotingCommand response = this.remotingClient.invokeSync(addr, request, timeoutMillis);
         assert response != null;
+        // 处理响应
         return this.processSendResponse(brokerName, msg, response);
     }
 
@@ -496,6 +553,15 @@ public class MQClientAPIImpl {
         }
     }
 
+    /**
+     * 处理响应
+     * @param brokerName broker name
+     * @param msg 消息
+     * @param response 响应实体
+     * @return
+     * @throws MQBrokerException
+     * @throws RemotingCommandException
+     */
     private SendResult processSendResponse(
         final String brokerName,
         final Message msg,
@@ -506,19 +572,20 @@ public class MQClientAPIImpl {
             case ResponseCode.FLUSH_SLAVE_TIMEOUT:
             case ResponseCode.SLAVE_NOT_AVAILABLE: {
             }
-            case ResponseCode.SUCCESS: {
+            case ResponseCode.SUCCESS: {//响应成功
+
                 SendStatus sendStatus = SendStatus.SEND_OK;
                 switch (response.getCode()) {
-                    case ResponseCode.FLUSH_DISK_TIMEOUT:
+                    case ResponseCode.FLUSH_DISK_TIMEOUT://刷到磁盘超时
                         sendStatus = SendStatus.FLUSH_DISK_TIMEOUT;
                         break;
-                    case ResponseCode.FLUSH_SLAVE_TIMEOUT:
+                    case ResponseCode.FLUSH_SLAVE_TIMEOUT:// 刷到从节点超时
                         sendStatus = SendStatus.FLUSH_SLAVE_TIMEOUT;
                         break;
-                    case ResponseCode.SLAVE_NOT_AVAILABLE:
+                    case ResponseCode.SLAVE_NOT_AVAILABLE:// 从节点不可用
                         sendStatus = SendStatus.SLAVE_NOT_AVAILABLE;
                         break;
-                    case ResponseCode.SUCCESS:
+                    case ResponseCode.SUCCESS://成功
                         sendStatus = SendStatus.SEND_OK;
                         break;
                     default:
@@ -528,11 +595,11 @@ public class MQClientAPIImpl {
 
                 SendMessageResponseHeader responseHeader =
                     (SendMessageResponseHeader) response.decodeCommandCustomHeader(SendMessageResponseHeader.class);
-
+                // 创建message queue
                 MessageQueue messageQueue = new MessageQueue(msg.getTopic(), brokerName, responseHeader.getQueueId());
-
+                // 获取消息唯一id
                 String uniqMsgId = MessageClientIDSetter.getUniqID(msg);
-                if (msg instanceof MessageBatch) {
+                if (msg instanceof MessageBatch) {// 一批消息，把每个消息唯一ID用逗号拼起来
                     StringBuilder sb = new StringBuilder();
                     for (Message message : (MessageBatch) msg) {
                         sb.append(sb.length() == 0 ? "" : ",").append(MessageClientIDSetter.getUniqID(message));
@@ -542,10 +609,12 @@ public class MQClientAPIImpl {
                 SendResult sendResult = new SendResult(sendStatus,
                     uniqMsgId,
                     responseHeader.getMsgId(), messageQueue, responseHeader.getQueueOffset());
+                // 设置事务id
                 sendResult.setTransactionId(responseHeader.getTransactionId());
+                // TODO regionId 与 traceOn 不知道什么意思
                 String regionId = response.getExtFields().get(MessageConst.PROPERTY_MSG_REGION);
                 String traceOn = response.getExtFields().get(MessageConst.PROPERTY_TRACE_SWITCH);
-                if (regionId == null || regionId.isEmpty()) {
+                if (regionId == null || regionId.isEmpty()) {// 设置默认region id
                     regionId = MixAll.DEFAULT_TRACE_REGION_ID;
                 }
                 if (traceOn != null && traceOn.equals("false")) {
@@ -1203,31 +1272,48 @@ public class MQClientAPIImpl {
         return getTopicRouteInfoFromNameServer(topic, timeoutMillis, false);
     }
 
+    /**
+     *  从nameserv 获取topic路由信息
+     * @param topic topic 名字
+     * @param timeoutMillis 超时时间  默认3s
+     */
     public TopicRouteData getTopicRouteInfoFromNameServer(final String topic, final long timeoutMillis)
         throws RemotingException, MQClientException, InterruptedException {
-
+        // 允许topic不存在 是true
         return getTopicRouteInfoFromNameServer(topic, timeoutMillis, true);
     }
 
+
+    /**
+     * 从nameserv 获取topic路由信息
+     * @param topic  topic 名字
+     * @param timeoutMillis  超时时间  默认3s
+     * @param allowTopicNotExist  允许这个topic不存在
+     */
     public TopicRouteData getTopicRouteInfoFromNameServer(final String topic, final long timeoutMillis,
         boolean allowTopicNotExist) throws MQClientException, InterruptedException, RemotingTimeoutException, RemotingSendRequestException, RemotingConnectException {
+
+        // 获取路由信息的请求头
         GetRouteInfoRequestHeader requestHeader = new GetRouteInfoRequestHeader();
         requestHeader.setTopic(topic);
 
-        RemotingCommand request = RemotingCommand.createRequestCommand(RequestCode.GET_ROUTEINTO_BY_TOPIC, requestHeader);
 
+        // 创建RemotingCommand  创建请求实体
+        RemotingCommand request = RemotingCommand.createRequestCommand(RequestCode.GET_ROUTEINTO_BY_TOPIC, requestHeader);
+        // 进行同步调用 获取结果
         RemotingCommand response = this.remotingClient.invokeSync(null, request, timeoutMillis);
         assert response != null;
         switch (response.getCode()) {
-            case ResponseCode.TOPIC_NOT_EXIST: {
+            case ResponseCode.TOPIC_NOT_EXIST: {// topic 不存在
+                // 允许不存在 && topic不是  TBW102
                 if (allowTopicNotExist && !topic.equals(MixAll.AUTO_CREATE_TOPIC_KEY_TOPIC)) {
                     log.warn("get Topic [{}] RouteInfoFromNameServer is not exist value", topic);
                 }
 
                 break;
             }
-            case ResponseCode.SUCCESS: {
-                byte[] body = response.getBody();
+            case ResponseCode.SUCCESS: {// 成功
+                byte[] body = response.getBody();// 获取内容
                 if (body != null) {
                     return TopicRouteData.decode(body, TopicRouteData.class);
                 }
@@ -1235,7 +1321,7 @@ public class MQClientAPIImpl {
             default:
                 break;
         }
-
+        //抛出异常
         throw new MQClientException(response.getCode(), response.getRemark());
     }
 

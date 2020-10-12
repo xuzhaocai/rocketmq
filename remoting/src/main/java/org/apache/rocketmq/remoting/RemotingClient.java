@@ -24,7 +24,7 @@ import org.apache.rocketmq.remoting.exception.RemotingTimeoutException;
 import org.apache.rocketmq.remoting.exception.RemotingTooMuchRequestException;
 import org.apache.rocketmq.remoting.netty.NettyRequestProcessor;
 import org.apache.rocketmq.remoting.protocol.RemotingCommand;
-
+//客户端的一个抽象
 public interface RemotingClient extends RemotingService {
     // 更新nameserv 地址
     void updateNameServerAddressList(final List<String> addrs);
