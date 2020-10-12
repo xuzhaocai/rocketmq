@@ -22,6 +22,8 @@ import org.apache.rocketmq.client.producer.SendResult;
 import org.apache.rocketmq.common.message.Message;
 import org.apache.rocketmq.remoting.common.RemotingHelper;
 
+import java.util.concurrent.locks.LockSupport;
+
 /**
  * This class demonstrates how to send messages to brokers using provided {@link DefaultMQProducer}.
  */
@@ -32,7 +34,7 @@ public class Producer {
          * Instantiate with a producer group name.
          */
         DefaultMQProducer producer = new DefaultMQProducer("please_rename_unique_group_name");
-
+        producer.setNamesrvAddr("127.0.0.1:9876");
         /*
          * Specify name server addresses.
          * <p/>
@@ -49,8 +51,8 @@ public class Producer {
          * Launch the instance.
          */
         producer.start();
-
-        for (int i = 0; i < 1000; i++) {
+        int count =0;
+        while(true) {
             try {
 
                 /*
@@ -58,7 +60,7 @@ public class Producer {
                  */
                 Message msg = new Message("TopicTest" /* Topic */,
                     "TagA" /* Tag */,
-                    ("Hello RocketMQ " + i).getBytes(RemotingHelper.DEFAULT_CHARSET) /* Message body */
+                    ("Hello RocketMQ " + count++).getBytes(RemotingHelper.DEFAULT_CHARSET) /* Message body */
                 );
 
                 /*
@@ -67,6 +69,7 @@ public class Producer {
                 SendResult sendResult = producer.send(msg);
 
                 System.out.printf("%s%n", sendResult);
+                Thread.sleep(1000);
             } catch (Exception e) {
                 e.printStackTrace();
                 Thread.sleep(1000);
@@ -76,6 +79,6 @@ public class Producer {
         /*
          * Shut down once the producer instance is not longer in use.
          */
-        producer.shutdown();
+       //  producer.shutdown();
     }
 }

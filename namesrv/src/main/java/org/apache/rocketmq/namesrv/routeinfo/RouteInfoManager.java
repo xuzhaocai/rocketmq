@@ -186,7 +186,7 @@ public class RouteInfoManager {
                         topicConfigWrapper.getDataVersion(),
                         channel,
                         haServerAddr));
-                if (null == prevBrokerLiveInfo) {
+                if (null == prevBrokerLiveInfo) {//如果之前没有addr的这个BrokerLiveInfo对象，说明是第一次注册
                     log.info("new broker registered, {} HAServer: {}", brokerAddr, haServerAddr);
                 }
                 // TODO

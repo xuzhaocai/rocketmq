@@ -78,7 +78,7 @@ public class DefaultMQProducer extends ClientConfig implements MQProducer {
      *
      * See {@linktourl http://rocketmq.apache.org/docs/core-concept/} for more discussion.
      */
-    private String producerGroup;
+    private String producerGroup;// 生产者组
 
     /**
      * Just for testing or demo program
@@ -86,24 +86,24 @@ public class DefaultMQProducer extends ClientConfig implements MQProducer {
     private String createTopicKey = MixAll.AUTO_CREATE_TOPIC_KEY_TOPIC;
 
     /**
-     * Number of queues to create per default topic.
+     * Number of queues to create per default topic.每个默认主题要创建的队列数量。
      */
     private volatile int defaultTopicQueueNums = 4;
 
     /**
-     * Timeout for sending messages.
+     * Timeout for sending messages. 发送消息超时时间
      */
     private int sendMsgTimeout = 3000;
 
     /**
-     * Compress message body threshold, namely, message body larger than 4k will be compressed on default.
+     * Compress message body threshold, namely, message body larger than 4k will be compressed on default.压缩消息体阈值，即默认对大于4k的消息体进行压缩。
      */
     private int compressMsgBodyOverHowmuch = 1024 * 4;
 
     /**
      * Maximum number of retry to perform internally before claiming sending failure in synchronous mode.
      * </p>
-     *
+     * 当发送失败的时候重试次数
      * This may potentially cause message duplication which is up to application developers to resolve.
      */
     private int retryTimesWhenSendFailed = 2;
@@ -111,18 +111,18 @@ public class DefaultMQProducer extends ClientConfig implements MQProducer {
     /**
      * Maximum number of retry to perform internally before claiming sending failure in asynchronous mode.
      * </p>
-     *
+     * 异步发送失败重试次数
      * This may potentially cause message duplication which is up to application developers to resolve.
      */
     private int retryTimesWhenSendAsyncFailed = 2;
 
     /**
-     * Indicate whether to retry another broker on sending failure internally.
+     * Indicate whether to retry another broker on sending failure internally.指示是否在内部发送失败时重试另一个broker
      */
     private boolean retryAnotherBrokerWhenNotStoreOK = false;
 
     /**
-     * Maximum allowed message size in bytes.
+     * Maximum allowed message size in bytes. 最大允许的消息大小
      */
     private int maxMessageSize = 1024 * 1024 * 4; // 4M
 
@@ -215,7 +215,7 @@ public class DefaultMQProducer extends ClientConfig implements MQProducer {
     }
 
     /**
-     * Start this producer instance.
+     * Start this producer instance. 启动该生产者实例
      * </p>
      *
      * <strong>
@@ -229,7 +229,7 @@ public class DefaultMQProducer extends ClientConfig implements MQProducer {
     @Override
     public void start() throws MQClientException {
         this.defaultMQProducerImpl.start();
-        if (null != traceDispatcher) {
+        if (null != traceDispatcher) {// 不是null的话
             try {
                 traceDispatcher.start(this.getNamesrvAddr());
             } catch (MQClientException e) {

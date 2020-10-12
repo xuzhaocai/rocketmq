@@ -125,17 +125,17 @@ public class MQClientInstance {
     public MQClientInstance(ClientConfig clientConfig, int instanceIndex, String clientId, RPCHook rpcHook) {
         this.clientConfig = clientConfig;
         this.instanceIndex = instanceIndex;
-        this.nettyClientConfig = new NettyClientConfig();
-        this.nettyClientConfig.setClientCallbackExecutorThreads(clientConfig.getClientCallbackExecutorThreads());
-        this.nettyClientConfig.setUseTLS(clientConfig.isUseTLS());
-        this.clientRemotingProcessor = new ClientRemotingProcessor(this);
+        this.nettyClientConfig = new NettyClientConfig();// netty client 配置
+        this.nettyClientConfig.setClientCallbackExecutorThreads(clientConfig.getClientCallbackExecutorThreads());// 设置客户端回调线程数
+        this.nettyClientConfig.setUseTLS(clientConfig.isUseTLS());// 设置是否启动tls
+        this.clientRemotingProcessor = new ClientRemotingProcessor(this);// processor
         this.mQClientAPIImpl = new MQClientAPIImpl(this.nettyClientConfig, this.clientRemotingProcessor, rpcHook, clientConfig);
-
+        // nameserv 不是null的话， 更新nameserv 地址列表
         if (this.clientConfig.getNamesrvAddr() != null) {
             this.mQClientAPIImpl.updateNameServerAddressList(this.clientConfig.getNamesrvAddr());
             log.info("user specified name server address: {}", this.clientConfig.getNamesrvAddr());
         }
-
+        // 客户端id
         this.clientId = clientId;
 
         this.mQAdminImpl = new MQAdminImpl(this);
@@ -224,26 +224,26 @@ public class MQClientInstance {
 
         synchronized (this) {
             switch (this.serviceState) {
-                case CREATE_JUST:
-                    this.serviceState = ServiceState.START_FAILED;
+                case CREATE_JUST://状态是创建没有启动
+                    this.serviceState = ServiceState.START_FAILED;// 先设置失败
                     // If not specified,looking address from name server
-                    if (null == this.clientConfig.getNamesrvAddr()) {
+                    if (null == this.clientConfig.getNamesrvAddr()) {// 判断nameserv 是否是null
                         this.mQClientAPIImpl.fetchNameServerAddr();
                     }
                     // Start request-response channel
-                    this.mQClientAPIImpl.start();
+                    this.mQClientAPIImpl.start();// start
                     // Start various schedule tasks
-                    this.startScheduledTask();
+                    this.startScheduledTask();// 开启任务调度
                     // Start pull service
-                    this.pullMessageService.start();
+                    this.pullMessageService.start();//开启拉去服务
                     // Start rebalance service
-                    this.rebalanceService.start();
+                    this.rebalanceService.start();// 开启平衡服务
                     // Start push service
                     this.defaultMQProducer.getDefaultMQProducerImpl().start(false);
                     log.info("the client factory [{}] start OK", this.clientId);
                     this.serviceState = ServiceState.RUNNING;
                     break;
-                case RUNNING:
+                case RUNNING:// 运行中
                     break;
                 case SHUTDOWN_ALREADY:
                     break;
@@ -909,21 +909,21 @@ public class MQClientInstance {
             }
         }
     }
-
+    // 注册生产者
     public boolean registerProducer(final String group, final DefaultMQProducerImpl producer) {
-        if (null == group || null == producer) {
+        if (null == group || null == producer) {//检查 group 与 producer
             return false;
         }
-
+        // 如果不存在就放到缓存中（生产者表）
         MQProducerInner prev = this.producerTable.putIfAbsent(group, producer);
-        if (prev != null) {
+        if (prev != null) {// 这个是已经存在的那个 producer
             log.warn("the producer group[{}] exist already.", group);
             return false;
         }
 
         return true;
     }
-
+    // 注销生产者
     public void unregisterProducer(final String group) {
         this.producerTable.remove(group);
         this.unregisterClientWithLock(group, null);

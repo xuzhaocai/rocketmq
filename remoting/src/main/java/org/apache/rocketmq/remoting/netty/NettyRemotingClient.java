@@ -101,15 +101,16 @@ public class NettyRemotingClient extends NettyRemotingAbstract implements Remoti
 
     public NettyRemotingClient(final NettyClientConfig nettyClientConfig,
         final ChannelEventListener channelEventListener) {
+        // 设置 异步 与 单向 请求的信号量
         super(nettyClientConfig.getClientOnewaySemaphoreValue(), nettyClientConfig.getClientAsyncSemaphoreValue());
-        this.nettyClientConfig = nettyClientConfig;
-        this.channelEventListener = channelEventListener;
-
+        this.nettyClientConfig = nettyClientConfig;// netty 配置文件
+        this.channelEventListener = channelEventListener;// listener
+        // 这个是netty 客户端回调线程数 ，默认是cpu 的核心数
         int publicThreadNums = nettyClientConfig.getClientCallbackExecutorThreads();
-        if (publicThreadNums <= 0) {
+        if (publicThreadNums <= 0) {// 如果设置小于等于0 的话，设置默认为4
             publicThreadNums = 4;
         }
-
+        // 创建线程池
         this.publicExecutor = Executors.newFixedThreadPool(publicThreadNums, new ThreadFactory() {
             private AtomicInteger threadIndex = new AtomicInteger(0);
 
@@ -118,7 +119,7 @@ public class NettyRemotingClient extends NettyRemotingAbstract implements Remoti
                 return new Thread(r, "NettyClientPublicExecutor_" + this.threadIndex.incrementAndGet());
             }
         });
-
+        // Selector 线程是1
         this.eventLoopGroupWorker = new NioEventLoopGroup(1, new ThreadFactory() {
             private AtomicInteger threadIndex = new AtomicInteger(0);
 
@@ -127,7 +128,7 @@ public class NettyRemotingClient extends NettyRemotingAbstract implements Remoti
                 return new Thread(r, String.format("NettyClientSelector_%d", this.threadIndex.incrementAndGet()));
             }
         });
-
+        // 是否启用tls
         if (nettyClientConfig.isUseTLS()) {
             try {
                 sslContext = TlsHelper.buildSslContext(true);
@@ -280,6 +281,10 @@ public class NettyRemotingClient extends NettyRemotingAbstract implements Remoti
         }
     }
 
+    /**
+     * 注册rpc hook，检查是否存在，不存在就添加到rpc hook 集合中
+     * @param rpcHook
+     */
     @Override
     public void registerRPCHook(RPCHook rpcHook) {
         if (rpcHook != null && !rpcHooks.contains(rpcHook)) {
@@ -557,14 +562,21 @@ public class NettyRemotingClient extends NettyRemotingAbstract implements Remoti
         }
     }
 
+    /**
+     * 注册processor
+     * @param requestCode  请求码
+     * @param processor  具体processor
+     * @param executor   线程池
+     */
     @Override
     public void registerProcessor(int requestCode, NettyRequestProcessor processor, ExecutorService executor) {
         ExecutorService executorThis = executor;
         if (null == executor) {
             executorThis = this.publicExecutor;
         }
-
+        // processor 对应 线程池
         Pair<NettyRequestProcessor, ExecutorService> pair = new Pair<NettyRequestProcessor, ExecutorService>(processor, executorThis);
+        // 将 请求码与 这一对信息放到缓存中
         this.processorTable.put(requestCode, pair);
     }
 

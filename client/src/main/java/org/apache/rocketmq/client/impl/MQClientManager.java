@@ -24,13 +24,13 @@ import org.apache.rocketmq.client.impl.factory.MQClientInstance;
 import org.apache.rocketmq.client.log.ClientLogger;
 import org.apache.rocketmq.logging.InternalLogger;
 import org.apache.rocketmq.remoting.RPCHook;
-
+// mq client 实例管理类
 public class MQClientManager {
     private final static InternalLogger log = ClientLogger.getLog();
-    private static MQClientManager instance = new MQClientManager();
-    private AtomicInteger factoryIndexGenerator = new AtomicInteger();
+    private static MQClientManager instance = new MQClientManager();// 单例子
+    private AtomicInteger factoryIndexGenerator = new AtomicInteger();// instanceIndex
     private ConcurrentMap<String/* clientId */, MQClientInstance> factoryTable =
-        new ConcurrentHashMap<String, MQClientInstance>();
+        new ConcurrentHashMap<String, MQClientInstance>();// clientId 与mq 实例的对应关系
 
     private MQClientManager() {
 
@@ -43,16 +43,16 @@ public class MQClientManager {
     public MQClientInstance getAndCreateMQClientInstance(final ClientConfig clientConfig) {
         return getAndCreateMQClientInstance(clientConfig, null);
     }
-
+    // 创建并且获取mq 客户端实例
     public MQClientInstance getAndCreateMQClientInstance(final ClientConfig clientConfig, RPCHook rpcHook) {
-        String clientId = clientConfig.buildMQClientId();
-        MQClientInstance instance = this.factoryTable.get(clientId);
-        if (null == instance) {
+        String clientId = clientConfig.buildMQClientId();//  获取客户端id
+        MQClientInstance instance = this.factoryTable.get(clientId);// 从缓存中获取
+        if (null == instance) {// 如果没有，创建一个mq客户端实例。然后放到缓存中
             instance =
                 new MQClientInstance(clientConfig.cloneClientConfig(),
                     this.factoryIndexGenerator.getAndIncrement(), clientId, rpcHook);
             MQClientInstance prev = this.factoryTable.putIfAbsent(clientId, instance);
-            if (prev != null) {
+            if (prev != null) {//之前的。之前有的话就返回之前的那个实例
                 instance = prev;
                 log.warn("Returned Previous MQClientInstance for clientId:[{}]", clientId);
             } else {

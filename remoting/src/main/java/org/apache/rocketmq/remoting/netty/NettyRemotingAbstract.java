@@ -60,16 +60,22 @@ public abstract class NettyRemotingAbstract {
 
     /**
      * Semaphore to limit maximum number of on-going one-way requests, which protects system memory footprint.
+     *
+     * 信号量限制单向请求的最大数量，从而保护系统内存占用。
      */
     protected final Semaphore semaphoreOneway;
 
     /**
      * Semaphore to limit maximum number of on-going asynchronous requests, which protects system memory footprint.
+     *
+     * 信号量限制正在进行的异步请求的最大数量，从而保护系统内存占用。
      */
     protected final Semaphore semaphoreAsync;
 
     /**
      * This map caches all on-going requests.
+     *
+     * 这个映射缓存所有正在进行的请求。
      */
     protected final ConcurrentMap<Integer /* opaque */, ResponseFuture> responseTable =
         new ConcurrentHashMap<Integer, ResponseFuture>(256);
@@ -77,12 +83,16 @@ public abstract class NettyRemotingAbstract {
     /**
      * This container holds all processors per request code, aka, for each incoming request, we may look up the
      * responding processor in this map to handle the request.
+     *
+     * 这个容器保存每个请求代码的所有处理器，也就是说，对于每个传入的请求，我们可以在这个映射中查找响应处理器来处理请求。
      */
     protected final HashMap<Integer/* request code */, Pair<NettyRequestProcessor, ExecutorService>> processorTable =
         new HashMap<Integer, Pair<NettyRequestProcessor, ExecutorService>>(64);
 
     /**
      * Executor to feed netty events to user defined {@link ChannelEventListener}.
+     *
+     * 执行器将netty事件提供给用户定义
      */
     protected final NettyEventExecutor nettyEventExecutor = new NettyEventExecutor();
 
@@ -93,23 +103,29 @@ public abstract class NettyRemotingAbstract {
 
     /**
      * SSL context via which to create {@link SslHandler}.
+     *
+     * 要通过其创建的SSL上下文
      */
     protected volatile SslContext sslContext;
 
     /**
      * custom rpc hooks
+     * 定制的rpc钩子
+     *
      */
     protected List<RPCHook> rpcHooks = new ArrayList<RPCHook>();
 
 
 
     static {
+
+        // 初始化netty 日志
         NettyLogger.initNettyLogger();
     }
 
     /**
      * Constructor, specifying capacity of one-way and asynchronous semaphores.
-     *
+     * 指定单向和异步信号量的容量。默认是65535
      * @param permitsOneway Number of permits for one-way requests.
      * @param permitsAsync Number of permits for asynchronous requests.
      */

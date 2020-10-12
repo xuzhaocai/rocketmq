@@ -155,38 +155,45 @@ import org.apache.rocketmq.remoting.protocol.RemotingSerializable;
 public class MQClientAPIImpl {
 
     private final static InternalLogger log = ClientLogger.getLog();
+    // 是否发送启动信息，默认是true的
     private static boolean sendSmartMsg =
         Boolean.parseBoolean(System.getProperty("org.apache.rocketmq.client.sendSmartMsg", "true"));
 
     static {
+        // 设置 remoting version ，其实就是设置当前的版本号
         System.setProperty(RemotingCommand.REMOTING_VERSION_KEY, Integer.toString(MQVersion.CURRENT_VERSION));
     }
-
+    // 远程 客户端
     private final RemotingClient remotingClient;
     private final TopAddressing topAddressing;
+    // processor
     private final ClientRemotingProcessor clientRemotingProcessor;
+    // nameserv 地址
     private String nameSrvAddr = null;
+    // 客户端配置
     private ClientConfig clientConfig;
 
     public MQClientAPIImpl(final NettyClientConfig nettyClientConfig,
         final ClientRemotingProcessor clientRemotingProcessor,
         RPCHook rpcHook, final ClientConfig clientConfig) {
-        this.clientConfig = clientConfig;
+        this.clientConfig = clientConfig;// 客户端配置
         topAddressing = new TopAddressing(MixAll.getWSAddr(), clientConfig.getUnitName());
-        this.remotingClient = new NettyRemotingClient(nettyClientConfig, null);
-        this.clientRemotingProcessor = clientRemotingProcessor;
-
+        this.remotingClient = new NettyRemotingClient(nettyClientConfig, null);// netty client
+        this.clientRemotingProcessor = clientRemotingProcessor;// netty processor
+        // 注册rpc hook
         this.remotingClient.registerRPCHook(rpcHook);
+
+        // 注册processor  CHECK_TRANSACTION_STATE 检查事务状态
         this.remotingClient.registerProcessor(RequestCode.CHECK_TRANSACTION_STATE, this.clientRemotingProcessor, null);
-
+        // 通知消费者者id已更改
         this.remotingClient.registerProcessor(RequestCode.NOTIFY_CONSUMER_IDS_CHANGED, this.clientRemotingProcessor, null);
-
+        // 重置消费者客户端偏移量
         this.remotingClient.registerProcessor(RequestCode.RESET_CONSUMER_CLIENT_OFFSET, this.clientRemotingProcessor, null);
-
+        //从客户端获取消费者状态
         this.remotingClient.registerProcessor(RequestCode.GET_CONSUMER_STATUS_FROM_CLIENT, this.clientRemotingProcessor, null);
-
+        // 获取消费者运行状态
         this.remotingClient.registerProcessor(RequestCode.GET_CONSUMER_RUNNING_INFO, this.clientRemotingProcessor, null);
-
+        // 消费信息
         this.remotingClient.registerProcessor(RequestCode.CONSUME_MESSAGE_DIRECTLY, this.clientRemotingProcessor, null);
     }
 
@@ -197,7 +204,7 @@ public class MQClientAPIImpl {
     public RemotingClient getRemotingClient() {
         return remotingClient;
     }
-
+    //获取nameserv addr
     public String fetchNameServerAddr() {
         try {
             String addrs = this.topAddressing.fetchNSAddr();
@@ -216,7 +223,7 @@ public class MQClientAPIImpl {
     }
 
     public void updateNameServerAddressList(final String addrs) {
-        String[] addrArray = addrs.split(";");
+        String[] addrArray = addrs.split(";");// 使用分号分割多个addr
         List<String> list = Arrays.asList(addrArray);
         this.remotingClient.updateNameServerAddressList(list);
     }

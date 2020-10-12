@@ -27,16 +27,16 @@ import org.apache.rocketmq.remoting.protocol.LanguageCode;
  */
 public class ClientConfig {
     public static final String SEND_MESSAGE_WITH_VIP_CHANNEL_PROPERTY = "com.rocketmq.sendMessageWithVIPChannel";
-    private String namesrvAddr = System.getProperty(MixAll.NAMESRV_ADDR_PROPERTY, System.getenv(MixAll.NAMESRV_ADDR_ENV));
-    private String clientIP = RemotingUtil.getLocalAddress();
-    private String instanceName = System.getProperty("rocketmq.client.name", "DEFAULT");
-    private int clientCallbackExecutorThreads = Runtime.getRuntime().availableProcessors();
+    private String namesrvAddr = System.getProperty(MixAll.NAMESRV_ADDR_PROPERTY, System.getenv(MixAll.NAMESRV_ADDR_ENV));// nameserver 地址
+    private String clientIP = RemotingUtil.getLocalAddress();// client的ip地址
+    private String instanceName = System.getProperty("rocketmq.client.name", "DEFAULT");// 实例名字 默认是  DEFAULT
+    private int clientCallbackExecutorThreads = Runtime.getRuntime().availableProcessors();//cpu 核心数
     /**
-     * Pulling topic information interval from the named server
+     * Pulling topic information interval from the named server 从nameser 获取topic 信息时间间隔
      */
     private int pollNameServerInterval = 1000 * 30;
     /**
-     * Heartbeat interval in microseconds with message broker
+     * Heartbeat interval in microseconds with message broker  broker 心跳间隔
      */
     private int heartbeatBrokerInterval = 1000 * 30;
     /**
@@ -45,11 +45,11 @@ public class ClientConfig {
     private int persistConsumerOffsetInterval = 1000 * 5;
     private boolean unitMode = false;
     private String unitName;
-    private boolean vipChannelEnabled = Boolean.parseBoolean(System.getProperty(SEND_MESSAGE_WITH_VIP_CHANNEL_PROPERTY, "true"));
+    private boolean vipChannelEnabled = Boolean.parseBoolean(System.getProperty(SEND_MESSAGE_WITH_VIP_CHANNEL_PROPERTY, "true"));// vip channel
 
-    private boolean useTLS = TlsSystemConfig.tlsEnable;
+    private boolean useTLS = TlsSystemConfig.tlsEnable;//是否启用tls ，默认是false
 
-    private LanguageCode language = LanguageCode.JAVA;
+    private LanguageCode language = LanguageCode.JAVA;// 语言是java
 
     public String buildMQClientId() {
         StringBuilder sb = new StringBuilder();
@@ -82,7 +82,7 @@ public class ClientConfig {
     }
 
     public void changeInstanceNameToPID() {
-        if (this.instanceName.equals("DEFAULT")) {
+        if (this.instanceName.equals("DEFAULT")) {// 如果实例名字是DEFAULT ，就把实例名字设置成 pid
             this.instanceName = String.valueOf(UtilAll.getPid());
         }
     }

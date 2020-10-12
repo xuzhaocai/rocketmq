@@ -26,29 +26,29 @@ import org.apache.rocketmq.remoting.netty.NettyRequestProcessor;
 import org.apache.rocketmq.remoting.protocol.RemotingCommand;
 
 public interface RemotingClient extends RemotingService {
-
+    // 更新nameserv 地址
     void updateNameServerAddressList(final List<String> addrs);
-
+    // 获取nameserv 地址列表
     List<String> getNameServerAddressList();
-
+    // 同步
     RemotingCommand invokeSync(final String addr, final RemotingCommand request,
         final long timeoutMillis) throws InterruptedException, RemotingConnectException,
         RemotingSendRequestException, RemotingTimeoutException;
-
+    // 异步
     void invokeAsync(final String addr, final RemotingCommand request, final long timeoutMillis,
         final InvokeCallback invokeCallback) throws InterruptedException, RemotingConnectException,
         RemotingTooMuchRequestException, RemotingTimeoutException, RemotingSendRequestException;
-
+    // 单向发送
     void invokeOneway(final String addr, final RemotingCommand request, final long timeoutMillis)
         throws InterruptedException, RemotingConnectException, RemotingTooMuchRequestException,
         RemotingTimeoutException, RemotingSendRequestException;
-
+    // 注册 processor
     void registerProcessor(final int requestCode, final NettyRequestProcessor processor,
         final ExecutorService executor);
-
+    // 设置 回调线程池
     void setCallbackExecutor(final ExecutorService callbackExecutor);
-
+    // 获取回调线程池
     ExecutorService getCallbackExecutor();
-
+    // 是否是可写的
     boolean isChannelWritable(final String addr);
 }
