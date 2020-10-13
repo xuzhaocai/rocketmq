@@ -123,7 +123,7 @@ public class BrokerStartup {
 
            // if (commandLine.hasOption('c')) {
                // String file = commandLine.getOptionValue('c');
-                String file = "/Users/mac/Desktop/rocketmq/rocketmq/broker/src/conf/broker-a.properties";
+                String file = brokerConfig.getRocketmqHome()+"/conf/broker-a.properties";
                 if (file != null) {
                     configFile = file;
                     InputStream in = new BufferedInputStream(new FileInputStream(file));

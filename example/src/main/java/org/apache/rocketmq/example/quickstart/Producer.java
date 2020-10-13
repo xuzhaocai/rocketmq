@@ -18,9 +18,12 @@ package org.apache.rocketmq.example.quickstart;
 
 import org.apache.rocketmq.client.exception.MQClientException;
 import org.apache.rocketmq.client.producer.DefaultMQProducer;
+import org.apache.rocketmq.client.producer.SendCallback;
 import org.apache.rocketmq.client.producer.SendResult;
 import org.apache.rocketmq.common.message.Message;
+import org.apache.rocketmq.remoting.RPCHook;
 import org.apache.rocketmq.remoting.common.RemotingHelper;
+import org.apache.rocketmq.remoting.protocol.RemotingCommand;
 
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.locks.LockSupport;
@@ -34,8 +37,21 @@ public class Producer {
         /*
          * Instantiate with a producer group name.
          */
-        DefaultMQProducer producer = new DefaultMQProducer("please_rename_unique_group_name");
+        DefaultMQProducer producer = new DefaultMQProducer("please_rename_unique_group_name", new RPCHook() {
+            @Override
+            public void doBeforeRequest(String remoteAddr, RemotingCommand request) {
+                System.out.println("发送请求：[remoteAddr:"+remoteAddr+",request:"+request+"]");
+            }
+
+            @Override
+            public void doAfterResponse(String remoteAddr, RemotingCommand request, RemotingCommand response) {
+                System.out.println("获得响应：[remoteAddr:"+remoteAddr+",response:"+response+"]");
+            }
+        });
         producer.setNamesrvAddr("127.0.0.1:9876");
+
+
+
         /*
          * Specify name server addresses.
          * <p/>
@@ -53,8 +69,8 @@ public class Producer {
          */
         producer.start();
 
-        CountDownLatch countDownLatch  =new CountDownLatch(1);
-        countDownLatch.await();
+        //CountDownLatch countDownLatch  =new CountDownLatch(1);
+        //countDownLatch.await();
         int count =0;
         while(true) {
             try {
@@ -70,9 +86,20 @@ public class Producer {
                 /*
                  * Call send message to deliver message to one of brokers.
                  */
-                SendResult sendResult = producer.send(msg);
+               // SendResult sendResult = producer.send(msg);
+                producer.send(msg, new SendCallback() {
+                    @Override
+                    public void onSuccess(SendResult sendResult) {
+                        //System.out.println("消息发送成功"+sendResult);
+                    }
 
-                System.out.printf("%s%n", sendResult);
+                    @Override
+                    public void onException(Throwable e) {
+                        System.out.println("消息发送异常");
+                    }
+                });
+
+               // System.out.printf("%s%n", sendResult);
                 Thread.sleep(5000);
             } catch (Exception e) {
                 e.printStackTrace();

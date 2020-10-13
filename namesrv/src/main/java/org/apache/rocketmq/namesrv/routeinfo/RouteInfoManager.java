@@ -54,10 +54,17 @@ public class RouteInfoManager {
     private final static long BROKER_CHANNEL_EXPIRED_TIME = 1000 * 60 * 2;
     // 读写锁
     private final ReadWriteLock lock = new ReentrantReadWriteLock();
+
+    // topic ---》 queuedata
     private final HashMap<String/* topic */, List<QueueData>> topicQueueTable;
+    // broker 名字---》 broker的信息
     private final HashMap<String/* brokerName */, BrokerData> brokerAddrTable;
+
+    // 集群名字----》broker名字们
     private final HashMap<String/* clusterName */, Set<String/* brokerName */>> clusterAddrTable;
+    // broker 地址---》broker活跃信息
     private final HashMap<String/* brokerAddr */, BrokerLiveInfo> brokerLiveTable;
+    // broker 地址----》 一堆过滤器
     private final HashMap<String/* brokerAddr */, List<String>/* Filter Server */> filterServerTable;
 
     public RouteInfoManager() {
@@ -335,24 +342,29 @@ public class RouteInfoManager {
                 // 获得写锁
                 this.lock.writeLock().lockInterruptibly();
 
-
+                // 在broker 活跃信息中移除 这个broker
                 BrokerLiveInfo brokerLiveInfo = this.brokerLiveTable.remove(brokerAddr);
                 log.info("unregisterBroker, remove from brokerLiveTable {}, {}",
                     brokerLiveInfo != null ? "OK" : "Failed",
                     brokerAddr
                 );
-
+                /// 过滤器表中也移除
                 this.filterServerTable.remove(brokerAddr);
 
                 boolean removeBrokerName = false;
+
+                // 从地址表中移除
                 BrokerData brokerData = this.brokerAddrTable.get(brokerName);
                 if (null != brokerData) {
+                    // 移除对应的brokerid
                     String addr = brokerData.getBrokerAddrs().remove(brokerId);
                     log.info("unregisterBroker, remove addr from brokerAddrTable {}, {}",
                         addr != null ? "OK" : "Failed",
                         brokerAddr
                     );
-
+                    // 如果这个brokerdata就他一个broker了，
+                    // 然后这次它还被移除了，说明这个brokerdata 里面就空了，
+                    // 直接从地址表中移除这个broker名字的就行了
                     if (brokerData.getBrokerAddrs().isEmpty()) {
                         this.brokerAddrTable.remove(brokerName);
                         log.info("unregisterBroker, remove name from brokerAddrTable OK, {}",
@@ -362,22 +374,27 @@ public class RouteInfoManager {
                         removeBrokerName = true;
                     }
                 }
-
+                // 如果移除了brokername
                 if (removeBrokerName) {
+
+                    //根据集群名字 获取 集群下面的 brokername
                     Set<String> nameSet = this.clusterAddrTable.get(clusterName);
                     if (nameSet != null) {
+                        // 移除broker
                         boolean removed = nameSet.remove(brokerName);
                         log.info("unregisterBroker, remove name from clusterAddrTable {}, {}",
                             removed ? "OK" : "Failed",
                             brokerName);
-
+                        //这个集群下面  broker name 集合空了的话
                         if (nameSet.isEmpty()) {
+                            // 移除
                             this.clusterAddrTable.remove(clusterName);
                             log.info("unregisterBroker, remove cluster from clusterAddrTable {}",
                                 clusterName
                             );
                         }
                     }
+                    // 移除这个broker 下面存在的  topic
                     this.removeTopicByBrokerName(brokerName);
                 }
             } finally {
@@ -387,8 +404,9 @@ public class RouteInfoManager {
             log.error("unregisterBroker Exception", e);
         }
     }
-
+    // 根据broker 移除对应的topic
     private void removeTopicByBrokerName(final String brokerName) {
+        // 移除对应brokername 下面的 queue
         Iterator<Entry<String, List<QueueData>>> itMap = this.topicQueueTable.entrySet().iterator();
         while (itMap.hasNext()) {
             Entry<String, List<QueueData>> entry = itMap.next();

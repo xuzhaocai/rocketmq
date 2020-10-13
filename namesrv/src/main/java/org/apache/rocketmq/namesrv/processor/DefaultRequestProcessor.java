@@ -117,18 +117,28 @@ public class DefaultRequestProcessor implements NettyRequestProcessor {
                 // 根据 topic 获取路由信息
             case RequestCode.GET_ROUTEINTO_BY_TOPIC:
                 return this.getRouteInfoByTopic(ctx, request);
+
+
+
+                // 获取broker集群信息
             case RequestCode.GET_BROKER_CLUSTER_INFO:
                 return this.getBrokerClusterInfo(ctx, request);
+
             case RequestCode.WIPE_WRITE_PERM_OF_BROKER:
                 return this.wipeWritePermOfBroker(ctx, request);
+                // 从nameserv中获取所有topic 列表
             case RequestCode.GET_ALL_TOPIC_LIST_FROM_NAMESERVER:
                 return getAllTopicListFromNameserver(ctx, request);
+                // 删除topic
             case RequestCode.DELETE_TOPIC_IN_NAMESRV:
                 return deleteTopicInNamesrv(ctx, request);
+                // 获取kv 列表
             case RequestCode.GET_KVLIST_BY_NAMESPACE:
                 return this.getKVListByNamespace(ctx, request);
+                // 根据集群获取topic
             case RequestCode.GET_TOPICS_BY_CLUSTER:
                 return this.getTopicsByCluster(ctx, request);
+
             case RequestCode.GET_SYSTEM_TOPIC_LIST_FROM_NS:
                 return this.getSystemTopicListFromNs(ctx, request);
             case RequestCode.GET_UNIT_TOPIC_LIST:
@@ -137,8 +147,12 @@ public class DefaultRequestProcessor implements NettyRequestProcessor {
                 return this.getHasUnitSubTopicList(ctx, request);
             case RequestCode.GET_HAS_UNIT_SUB_UNUNIT_TOPIC_LIST:
                 return this.getHasUnitSubUnUnitTopicList(ctx, request);
+
+                // 更新nameserv 配置
             case RequestCode.UPDATE_NAMESRV_CONFIG:
                 return this.updateConfig(ctx, request);
+
+                // 获取nameserv配置
             case RequestCode.GET_NAMESRV_CONFIG:
                 return this.getConfig(ctx, request);
             default:

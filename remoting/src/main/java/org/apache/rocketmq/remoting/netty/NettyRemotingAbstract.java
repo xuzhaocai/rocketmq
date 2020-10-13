@@ -505,35 +505,57 @@ public abstract class NettyRemotingAbstract {
         }
     }
 
+    /**
+     * 异步调用
+     * @param channel 通道
+     * @param request  请求command
+     * @param timeoutMillis  超时时间
+     * @param invokeCallback  回调
+     * @throws InterruptedException
+     * @throws RemotingTooMuchRequestException
+     * @throws RemotingTimeoutException
+     * @throws RemotingSendRequestException
+     */
     public void invokeAsyncImpl(final Channel channel, final RemotingCommand request, final long timeoutMillis,
         final InvokeCallback invokeCallback)
         throws InterruptedException, RemotingTooMuchRequestException, RemotingTimeoutException, RemotingSendRequestException {
+
+
         long beginStartTime = System.currentTimeMillis();
         final int opaque = request.getOpaque();
+        //信号量限流
         boolean acquired = this.semaphoreAsync.tryAcquire(timeoutMillis, TimeUnit.MILLISECONDS);
-        if (acquired) {
+        if (acquired) {// 获得许可
+
             final SemaphoreReleaseOnlyOnce once = new SemaphoreReleaseOnlyOnce(this.semaphoreAsync);
+            // 判断超时
             long costTime = System.currentTimeMillis() - beginStartTime;
             if (timeoutMillis < costTime) {
                 once.release();
                 throw new RemotingTimeoutException("invokeAsyncImpl call timeout");
             }
 
+
+            // 封装 ResponseFuture
             final ResponseFuture responseFuture = new ResponseFuture(channel, opaque, timeoutMillis - costTime, invokeCallback, once);
+            // 放入 response 表中
             this.responseTable.put(opaque, responseFuture);
             try {
+                // 发送
                 channel.writeAndFlush(request).addListener(new ChannelFutureListener() {
                     @Override
                     public void operationComplete(ChannelFuture f) throws Exception {
-                        if (f.isSuccess()) {
+                        if (f.isSuccess()) {//发送成功，设置发送成功标志
                             responseFuture.setSendRequestOK(true);
                             return;
                         }
+                        // 发送失败
                         requestFail(opaque);
                         log.warn("send a request command to channel <{}> failed.", RemotingHelper.parseChannelRemoteAddr(channel));
                     }
                 });
             } catch (Exception e) {
+                //释放信号量
                 responseFuture.release();
                 log.warn("send a request command to channel <" + RemotingHelper.parseChannelRemoteAddr(channel) + "> Exception", e);
                 throw new RemotingSendRequestException(RemotingHelper.parseChannelRemoteAddr(channel), e);
@@ -553,13 +575,15 @@ public abstract class NettyRemotingAbstract {
             }
         }
     }
-
+    // 发送失败
     private void requestFail(final int opaque) {
+        // 移除
         ResponseFuture responseFuture = responseTable.remove(opaque);
         if (responseFuture != null) {
             responseFuture.setSendRequestOK(false);
             responseFuture.putResponse(null);
             try {
+                // 执行callback
                 executeInvokeCallback(responseFuture);
             } catch (Throwable e) {
                 log.warn("execute callback in requestFail, and callback throw", e);

@@ -295,12 +295,16 @@ public class MQClientInstance {
             @Override
             public void run() {
                 try {
+                    // 清除下线broker
                     MQClientInstance.this.cleanOfflineBroker();
+                    // 发送心跳到所有的broker上面
                     MQClientInstance.this.sendHeartbeatToAllBrokerWithLock();
                 } catch (Exception e) {
                     log.error("ScheduledTask sendHeartbeatToAllBroker exception", e);
                 }
             }
+
+            // 默认是30s
         }, 1000, this.clientConfig.getHeartbeatBrokerInterval(), TimeUnit.MILLISECONDS);
         // 默认5s
         this.scheduledExecutorService.scheduleAtFixedRate(new Runnable() {
@@ -376,9 +380,13 @@ public class MQClientInstance {
 
     /**
      * Remove offline broker
+     *
+     * 清除掉线broker
      */
     private void cleanOfflineBroker() {
         try {
+
+            //获得锁
             if (this.lockNamesrv.tryLock(LOCK_TIMEOUT_MILLIS, TimeUnit.MILLISECONDS))
                 try {
                     ConcurrentHashMap<String, HashMap<Long, String>> updatedTable = new ConcurrentHashMap<String, HashMap<Long, String>>();
@@ -396,16 +404,18 @@ public class MQClientInstance {
                         while (it.hasNext()) {
                             Entry<Long, String> ee = it.next();
                             String addr = ee.getValue();
+                            // 找出那个 不在topic 路由表里的 broker
                             if (!this.isBrokerAddrExistInTopicRouteTable(addr)) {
-                                it.remove();
+                                it.remove();// 移除不在路由表中的broker
                                 log.info("the broker addr[{} {}] is offline, remove it", brokerName, addr);
                             }
                         }
-
+                        // 如果这个地址表是空的，就把对应的broker元素从broker表中移除了
                         if (cloneAddrTable.isEmpty()) {
                             itBrokerTable.remove();
                             log.info("the broker[{}] name's host is offline, remove it", brokerName);
                         } else {
+                            // 设置成新的
                             updatedTable.put(brokerName, cloneAddrTable);
                         }
                     }
@@ -460,7 +470,7 @@ public class MQClientInstance {
     }
 
     public void sendHeartbeatToAllBrokerWithLock() {
-        if (this.lockHeartbeat.tryLock()) {
+        if (this.lockHeartbeat.tryLock()) {// 心跳锁
             try {
                 this.sendHeartbeatToAllBroker();
                 this.uploadFilterClassSource();
@@ -509,7 +519,13 @@ public class MQClientInstance {
         return updateTopicRouteInfoFromNameServer(topic, false, null);
     }
 
+    /**
+     * 判断broker  addr 是否在topic路由表中
+     * @param addr 地址
+     * @return
+     */
     private boolean isBrokerAddrExistInTopicRouteTable(final String addr) {
+        // 遍历路由表，然后找到返回true 最后没找到就返回false
         Iterator<Entry<String, TopicRouteData>> it = this.topicRouteTable.entrySet().iterator();
         while (it.hasNext()) {
             Entry<String, TopicRouteData> entry = it.next();

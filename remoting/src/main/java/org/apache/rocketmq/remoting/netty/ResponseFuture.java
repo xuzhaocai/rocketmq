@@ -26,9 +26,9 @@ import org.apache.rocketmq.remoting.protocol.RemotingCommand;
 
 public class ResponseFuture {
     private final int opaque;
-    private final Channel processChannel;
-    private final long timeoutMillis;
-    private final InvokeCallback invokeCallback;
+    private final Channel processChannel;// channel
+    private final long timeoutMillis;// 超时
+    private final InvokeCallback invokeCallback;// 回调
     private final long beginTimestamp = System.currentTimeMillis();
     private final CountDownLatch countDownLatch = new CountDownLatch(1);
 
