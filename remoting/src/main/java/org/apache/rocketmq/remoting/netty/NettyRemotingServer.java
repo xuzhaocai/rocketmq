@@ -279,17 +279,30 @@ public class NettyRemotingServer extends NettyRemotingAbstract implements Remoti
         }
     }
 
+    /**
+     * 注册processor
+     * @param requestCode 请求code
+     * @param processor  对应的processor
+     * @param executor   处理的线程池
+     */
     @Override
     public void registerProcessor(int requestCode, NettyRequestProcessor processor, ExecutorService executor) {
         ExecutorService executorThis = executor;
         if (null == executor) {
+            // 如果没有指定的就使用公共的线程池
             executorThis = this.publicExecutor;
         }
-
+        // 封装成对  ，processor  ---》 线程池
         Pair<NettyRequestProcessor, ExecutorService> pair = new Pair<NettyRequestProcessor, ExecutorService>(processor, executorThis);
+        // 放到缓存中
         this.processorTable.put(requestCode, pair);
     }
 
+    /**
+     * 注册默认processor
+     * @param processor 处理器
+     * @param executor  线程池
+     */
     @Override
     public void registerDefaultProcessor(NettyRequestProcessor processor, ExecutorService executor) {
         this.defaultRequestProcessor = new Pair<NettyRequestProcessor, ExecutorService>(processor, executor);
@@ -395,7 +408,7 @@ public class NettyRemotingServer extends NettyRemotingAbstract implements Remoti
             ctx.fireChannelRead(msg.retain());
         }
     }
-
+    ///处理接受到的消息
     class NettyServerHandler extends SimpleChannelInboundHandler<RemotingCommand> {
 
         @Override

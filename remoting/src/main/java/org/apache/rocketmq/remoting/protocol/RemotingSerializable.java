@@ -21,7 +21,7 @@ import java.nio.charset.Charset;
 
 public abstract class RemotingSerializable {
     private final static Charset CHARSET_UTF8 = Charset.forName("UTF-8");
-
+    // 这个就是使用json的编码 进行序列化
     public static byte[] encode(final Object obj) {
         final String json = toJson(obj, false);
         if (json != null) {

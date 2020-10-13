@@ -22,6 +22,7 @@ import org.apache.rocketmq.client.producer.SendResult;
 import org.apache.rocketmq.common.message.Message;
 import org.apache.rocketmq.remoting.common.RemotingHelper;
 
+import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.locks.LockSupport;
 
 /**
@@ -51,6 +52,9 @@ public class Producer {
          * Launch the instance.
          */
         producer.start();
+
+        CountDownLatch countDownLatch  =new CountDownLatch(1);
+        countDownLatch.await();
         int count =0;
         while(true) {
             try {

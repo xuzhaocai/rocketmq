@@ -211,10 +211,13 @@ public class RemotingCommand {
 
     public static byte[] markProtocolType(int source, SerializeType type) {
         byte[] result = new byte[4];
-
+        // 第一个字节放 序列化类型
         result[0] = type.getCode();
+        //第二个字节是 右移16位 & 0xFF   这个就是 将  source  16-24位 bit 写到这个字节中
         result[1] = (byte) ((source >> 16) & 0xFF);
+        //第三个字节是 右移8位  & 0xFF  这个是将  8-16位的bit 写到 这个字节中
         result[2] = (byte) ((source >> 8) & 0xFF);
+        //第四个字节是 source & 0xFF  将 1-8 位的bit 写到这个字节中
         result[3] = (byte) (source & 0xFF);
         return result;
     }
@@ -344,7 +347,7 @@ public class RemotingCommand {
         if (this.body != null) {
             length += body.length;
         }
-
+        // 申请内存buffer
         ByteBuffer result = ByteBuffer.allocate(4 + length);
 
         // length
@@ -365,9 +368,10 @@ public class RemotingCommand {
 
         return result;
     }
-
+    // header的编码工作
     private byte[] headerEncode() {
         this.makeCustomHeaderToNet();
+        // 判断serializeTypeCurrentRPC 是否是mq序列化
         if (SerializeType.ROCKETMQ == serializeTypeCurrentRPC) {
             return RocketMQSerializable.rocketMQProtocolEncode(this);
         } else {
@@ -377,11 +381,12 @@ public class RemotingCommand {
 
     public void makeCustomHeaderToNet() {
         if (this.customHeader != null) {
+            // 获取所有的属性值
             Field[] fields = getClazzFields(customHeader.getClass());
             if (null == this.extFields) {
                 this.extFields = new HashMap<String, String>();
             }
-
+            // 将header中的字段塞到 extFields 这个map中
             for (Field field : fields) {
                 if (!Modifier.isStatic(field.getModifiers())) {
                     String name = field.getName();
@@ -407,6 +412,11 @@ public class RemotingCommand {
         return encodeHeader(this.body != null ? this.body.length : 0);
     }
 
+    /**
+     * 编码
+     * @param bodyLength  消息体的长度
+     * @return
+     */
     public ByteBuffer encodeHeader(final int bodyLength) {
         // 1> header length size
         int length = 4;
@@ -420,16 +430,17 @@ public class RemotingCommand {
         // 3> body data length
         length += bodyLength;
 
+        // 申请内存
         ByteBuffer result = ByteBuffer.allocate(4 + length - bodyLength);
 
         // length
-        result.putInt(length);
+        result.putInt(length);// 长度
 
         // header length
-        result.put(markProtocolType(headerData.length, serializeTypeCurrentRPC));
+        result.put(markProtocolType(headerData.length, serializeTypeCurrentRPC));// header长度
 
         // header data
-        result.put(headerData);
+        result.put(headerData);// header 数据
 
         result.flip();
 

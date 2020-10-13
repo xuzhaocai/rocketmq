@@ -45,6 +45,9 @@ import org.apache.rocketmq.common.protocol.route.TopicRouteData;
 import org.apache.rocketmq.common.sysflag.TopicSysFlag;
 import org.apache.rocketmq.remoting.common.RemotingUtil;
 
+/**
+ * 管理路由信息
+ */
 public class RouteInfoManager {
     private static final InternalLogger log = InternalLoggerFactory.getLogger(LoggerName.NAMESRV_LOGGER_NAME);
     // broker过期时间
@@ -315,6 +318,13 @@ public class RouteInfoManager {
         return wipeTopicCnt;
     }
 
+    /**
+     * 注销broker
+     * @param clusterName  集群名字
+     * @param brokerAddr   broker地址
+     * @param brokerName   brokername
+     * @param brokerId     brokerid
+     */
     public void unregisterBroker(
         final String clusterName,
         final String brokerAddr,
@@ -322,7 +332,10 @@ public class RouteInfoManager {
         final long brokerId) {
         try {
             try {
+                // 获得写锁
                 this.lock.writeLock().lockInterruptibly();
+
+
                 BrokerLiveInfo brokerLiveInfo = this.brokerLiveTable.remove(brokerAddr);
                 log.info("unregisterBroker, remove from brokerLiveTable {}, {}",
                     brokerLiveInfo != null ? "OK" : "Failed",
@@ -398,38 +411,55 @@ public class RouteInfoManager {
         }
     }
 
+    /**
+     * 根据topic获取路由信息
+     * @param topic topic
+     * @return
+     */
     public TopicRouteData pickupTopicRouteData(final String topic) {
         TopicRouteData topicRouteData = new TopicRouteData();
         boolean foundQueueData = false;
         boolean foundBrokerData = false;
         Set<String> brokerNameSet = new HashSet<String>();
         List<BrokerData> brokerDataList = new LinkedList<BrokerData>();
-        topicRouteData.setBrokerDatas(brokerDataList);
 
+        topicRouteData.setBrokerDatas(brokerDataList);
+        // filter
         HashMap<String, List<String>> filterServerMap = new HashMap<String, List<String>>();
         topicRouteData.setFilterServerTable(filterServerMap);
 
         try {
             try {
+                // 获取读锁
                 this.lock.readLock().lockInterruptibly();
+
+                // 根据topic 获取queuedata 列表
                 List<QueueData> queueDataList = this.topicQueueTable.get(topic);
                 if (queueDataList != null) {
+                    // 如果不是null
                     topicRouteData.setQueueDatas(queueDataList);
-                    foundQueueData = true;
 
+                    // 发现queuedata
+                    foundQueueData = true;
+                    // 获取queuedata 对应的 broker name
                     Iterator<QueueData> it = queueDataList.iterator();
                     while (it.hasNext()) {
                         QueueData qd = it.next();
                         brokerNameSet.add(qd.getBrokerName());
                     }
-
+                    // 再根据broker 的name 去 broker的地址表中 获取broker 信息
                     for (String brokerName : brokerNameSet) {
+                        // 根据broker 名字获取 broker信息
                         BrokerData brokerData = this.brokerAddrTable.get(brokerName);
                         if (null != brokerData) {
+
+
                             BrokerData brokerDataClone = new BrokerData(brokerData.getCluster(), brokerData.getBrokerName(), (HashMap<Long, String>) brokerData
                                 .getBrokerAddrs().clone());
                             brokerDataList.add(brokerDataClone);
+                            // 发现broker 信息
                             foundBrokerData = true;
+                            // 处理filter ，就是根据broker地址获取对应的filter集合，也就是某个broker 可能对应一堆 filter，
                             for (final String brokerAddr : brokerDataClone.getBrokerAddrs().values()) {
                                 List<String> filterServerList = this.filterServerTable.get(brokerAddr);
                                 filterServerMap.put(brokerAddr, filterServerList);
@@ -438,6 +468,8 @@ public class RouteInfoManager {
                     }
                 }
             } finally {
+
+                //释放读锁
                 this.lock.readLock().unlock();
             }
         } catch (Exception e) {
@@ -445,7 +477,7 @@ public class RouteInfoManager {
         }
 
         log.debug("pickupTopicRouteData {} {}", topic, topicRouteData);
-
+        // 发现 brokerData 或者 queuedata ，将这个topic路由信息返回
         if (foundBrokerData && foundQueueData) {
             return topicRouteData;
         }

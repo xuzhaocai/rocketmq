@@ -86,6 +86,7 @@ public class NamesrvController {
         this.remotingExecutor =
             Executors.newFixedThreadPool(nettyServerConfig.getServerWorkerThreads(), new ThreadFactoryImpl("RemotingExecutorThread_"));
 
+        /// 注册processor
         this.registerProcessor();
         // 任务调度线程池---用来扫描掉线的broker
         this.scheduledExecutorService.scheduleAtFixedRate(new Runnable() {
@@ -146,6 +147,7 @@ public class NamesrvController {
     }
 
     private void registerProcessor() {
+        // 默认是false的
         if (namesrvConfig.isClusterTest()) {
 
             this.remotingServer.registerDefaultProcessor(new ClusterTestRequestProcessor(this, namesrvConfig.getProductEnvName()),
