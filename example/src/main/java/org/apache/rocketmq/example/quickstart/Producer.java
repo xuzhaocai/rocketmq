@@ -33,83 +33,27 @@ import java.util.concurrent.locks.LockSupport;
  */
 public class Producer {
     public static void main(String[] args) throws MQClientException, InterruptedException {
-
-        /*
-         * Instantiate with a producer group name.
-         */
-        DefaultMQProducer producer = new DefaultMQProducer("please_rename_unique_group_name", new RPCHook() {
-            @Override
-            public void doBeforeRequest(String remoteAddr, RemotingCommand request) {
-                System.out.println("发送请求：[remoteAddr:"+remoteAddr+",request:"+request+"]");
-            }
-
-            @Override
-            public void doAfterResponse(String remoteAddr, RemotingCommand request, RemotingCommand response) {
-                System.out.println("获得响应：[remoteAddr:"+remoteAddr+",response:"+response+"]");
-            }
-        });
+        // 创建producer
+        DefaultMQProducer producer = new DefaultMQProducer("please_rename_unique_group_name");
+        // 设置nameserv地址
         producer.setNamesrvAddr("127.0.0.1:9876");
-
-
-
-        /*
-         * Specify name server addresses.
-         * <p/>
-         *
-         * Alternatively, you may specify name server addresses via exporting environmental variable: NAMESRV_ADDR
-         * <pre>
-         * {@code
-         * producer.setNamesrvAddr("name-server1-ip:9876;name-server2-ip:9876");
-         * }
-         * </pre>
-         */
-
-        /*
-         * Launch the instance.
-         */
+        // 启动producer
         producer.start();
-
-        //CountDownLatch countDownLatch  =new CountDownLatch(1);
-        //countDownLatch.await();
         int count =0;
         while(true) {
             try {
-
-                /*
-                 * Create a message instance, specifying topic, tag and message body.
-                 */
+                // 创建消息
                 Message msg = new Message("TopicTest" /* Topic */,
                     "TagA" /* Tag */,
                     ("Hello RocketMQ " + count++).getBytes(RemotingHelper.DEFAULT_CHARSET) /* Message body */
                 );
-
-                /*
-                 * Call send message to deliver message to one of brokers.
-                 */
-               // SendResult sendResult = producer.send(msg);
-                producer.send(msg, new SendCallback() {
-                    @Override
-                    public void onSuccess(SendResult sendResult) {
-                        //System.out.println("消息发送成功"+sendResult);
-                    }
-
-                    @Override
-                    public void onException(Throwable e) {
-                        System.out.println("消息发送异常");
-                    }
-                });
-
-               // System.out.printf("%s%n", sendResult);
-                Thread.sleep(5000);
+                // 发送消息
+                SendResult sendResult = producer.send(msg);
+                System.out.printf("%s%n", sendResult);
             } catch (Exception e) {
                 e.printStackTrace();
                 Thread.sleep(1000);
             }
         }
-
-        /*
-         * Shut down once the producer instance is not longer in use.
-         */
-       //  producer.shutdown();
     }
 }

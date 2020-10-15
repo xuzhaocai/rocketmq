@@ -182,7 +182,6 @@ public class MQClientAPIImpl {
         this.clientRemotingProcessor = clientRemotingProcessor;// netty processor
         // 注册rpc hook
         this.remotingClient.registerRPCHook(rpcHook);
-
         // 注册processor  CHECK_TRANSACTION_STATE 检查事务状态
         this.remotingClient.registerProcessor(RequestCode.CHECK_TRANSACTION_STATE, this.clientRemotingProcessor, null);
         // 通知消费者者id已更改

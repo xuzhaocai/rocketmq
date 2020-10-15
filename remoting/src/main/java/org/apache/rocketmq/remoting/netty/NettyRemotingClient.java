@@ -151,22 +151,16 @@ public class NettyRemotingClient extends NettyRemotingAbstract implements Remoti
 
     @Override
     public void start() {
-
-
-        // 默认事件处理
         this.defaultEventExecutorGroup = new DefaultEventExecutorGroup(
                 // 默认是4个线程
             nettyClientConfig.getClientWorkerThreads(),
             new ThreadFactory() {
-
                 private AtomicInteger threadIndex = new AtomicInteger(0);
-
                 @Override
                 public Thread newThread(Runnable r) {
                     return new Thread(r, "NettyClientWorkerThread_" + this.threadIndex.incrementAndGet());
                 }
             });
-
         Bootstrap handler = this.bootstrap.group(this.eventLoopGroupWorker).channel(NioSocketChannel.class)
             .option(ChannelOption.TCP_NODELAY, true)// 不使用tcp 中的DELAY 算法，就是有小包也要发出去
             .option(ChannelOption.SO_KEEPALIVE, false)// keepalive false
@@ -204,7 +198,6 @@ public class NettyRemotingClient extends NettyRemotingAbstract implements Remoti
             @Override
             public void run() {
                 try {
-
                     // 扫描响应表
                     NettyRemotingClient.this.scanResponseTable();
                 } catch (Throwable e) {
@@ -212,7 +205,6 @@ public class NettyRemotingClient extends NettyRemotingAbstract implements Remoti
                 }
             }
         }, 1000 * 3, 1000); // 1s
-
         if (this.channelEventListener != null) {// channel事件监听器不是空就启动
             this.nettyEventExecutor.start();
         }

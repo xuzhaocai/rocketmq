@@ -221,7 +221,6 @@ public class MQClientInstance {
     }
 
     public void start() throws MQClientException {
-
         synchronized (this) {
             switch (this.serviceState) {
                 case CREATE_JUST://状态是创建没有启动
@@ -260,7 +259,6 @@ public class MQClientInstance {
      */
     private void startScheduledTask() {
         if (null == this.clientConfig.getNamesrvAddr()) {// 如果没有nameserv
-
             // 获取nameserv 地址  2分钟执行一次
             this.scheduledExecutorService.scheduleAtFixedRate(new Runnable() {
 
