@@ -165,7 +165,7 @@ public class ScheduleMessageService extends ConfigManager {
         result = result && this.parseDelayLevel();
         return result;
     }
-
+    // config 文件路径
     @Override
     public String configFilePath() {
         return StorePathConfigHelper.getDelayOffsetStorePath(this.defaultMessageStore.getMessageStoreConfig()

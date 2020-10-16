@@ -64,13 +64,21 @@ public class CommitLog {
     protected final PutMessageLock putMessageLock;
 
     public CommitLog(final DefaultMessageStore defaultMessageStore) {
-        this.mappedFileQueue = new MappedFileQueue(defaultMessageStore.getMessageStoreConfig().getStorePathCommitLog(),
-            defaultMessageStore.getMessageStoreConfig().getMapedFileSizeCommitLog(), defaultMessageStore.getAllocateMappedFileService());
+        // mappedFile
+        this.mappedFileQueue = new MappedFileQueue(
+                defaultMessageStore.getMessageStoreConfig().getStorePathCommitLog() ,// commitLog文件位置
+                defaultMessageStore.getMessageStoreConfig().getMapedFileSizeCommitLog(),// commitLog的大小，默认是1G
+                defaultMessageStore.getAllocateMappedFileService()
+        );
+
         this.defaultMessageStore = defaultMessageStore;
 
+        // 刷盘模式  默认是异步刷盘
         if (FlushDiskType.SYNC_FLUSH == defaultMessageStore.getMessageStoreConfig().getFlushDiskType()) {
+            // 同步刷盘
             this.flushCommitLogService = new GroupCommitService();
         } else {
+            // 其他刷盘模式
             this.flushCommitLogService = new FlushRealTimeService();
         }
 
@@ -83,6 +91,7 @@ public class CommitLog {
                 return new MessageExtBatchEncoder(defaultMessageStore.getMessageStoreConfig().getMaxMessageSize());
             }
         };
+        //
         this.putMessageLock = defaultMessageStore.getMessageStoreConfig().isUseReentrantLockWhenPutMessage() ? new PutMessageReentrantLock() : new PutMessageSpinLock();
 
     }

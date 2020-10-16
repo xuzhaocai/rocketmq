@@ -118,11 +118,12 @@ public class DefaultMessageStore implements MessageStore {
         this.messageStoreConfig = messageStoreConfig;
         this.brokerStatsManager = brokerStatsManager;
         this.allocateMappedFileService = new AllocateMappedFileService(this);
-        if (messageStoreConfig.isEnableDLegerCommitLog()) {
+        if (messageStoreConfig.isEnableDLegerCommitLog()) {// 这个是dleger commitLog
             this.commitLog = new DLedgerCommitLog(this);
-        } else {
+        } else {// 普通commitLog
             this.commitLog = new CommitLog(this);
         }
+        // consumeQueue 表
         this.consumeQueueTable = new ConcurrentHashMap<>(32);
 
         this.flushConsumeQueueService = new FlushConsumeQueueService();
@@ -130,7 +131,8 @@ public class DefaultMessageStore implements MessageStore {
         this.cleanConsumeQueueService = new CleanConsumeQueueService();
         this.storeStatsService = new StoreStatsService();
         this.indexService = new IndexService(this);
-        if (!messageStoreConfig.isEnableDLegerCommitLog()) {
+        if (!messageStoreConfig.isEnableDLegerCommitLog()) {// 没用 dleger
+            // 需要自己维护ha
             this.haService = new HAService(this);
         } else {
             this.haService = null;
@@ -177,7 +179,7 @@ public class DefaultMessageStore implements MessageStore {
         try {
             boolean lastExitOK = !this.isTempFileExist();
             log.info("last shutdown {}", lastExitOK ? "normally" : "abnormally");
-
+            // 延时消息服务
             if (null != scheduleMessageService) {
                 result = result && this.scheduleMessageService.load();
             }
@@ -1281,7 +1283,7 @@ public class DefaultMessageStore implements MessageStore {
             }
         }
     }
-
+    // 判断abort文件是否存在
     private boolean isTempFileExist() {
         String fileName = StorePathConfigHelper.getAbortFile(this.messageStoreConfig.getStorePathRootDir());
         File file = new File(fileName);

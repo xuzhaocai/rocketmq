@@ -319,6 +319,11 @@ public class MixAll {
         return properties;
     }
 
+    /**
+     * 将properties里面的配置转成 配置类
+     * @param p
+     * @param object
+     */
     public static void properties2Object(final Properties p, final Object object) {
         Method[] methods = object.getClass().getMethods();
         for (Method method : methods) {

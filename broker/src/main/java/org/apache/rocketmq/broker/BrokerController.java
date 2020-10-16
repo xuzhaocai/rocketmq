@@ -174,16 +174,30 @@ public class BrokerController {
         this.nettyServerConfig = nettyServerConfig;
         this.nettyClientConfig = nettyClientConfig;
         this.messageStoreConfig = messageStoreConfig;
+
+
+
+
+        // 消费者offset 管理器
         this.consumerOffsetManager = new ConsumerOffsetManager(this);
+        // topic 配置管理器
         this.topicConfigManager = new TopicConfigManager(this);
+        // 拉取消息processor
         this.pullMessageProcessor = new PullMessageProcessor(this);
+
         this.pullRequestHoldService = new PullRequestHoldService(this);
+        // 消息到达监听
         this.messageArrivingListener = new NotifyMessageArrivingListener(this.pullRequestHoldService);
+        // 消费者id 改变监听
         this.consumerIdsChangeListener = new DefaultConsumerIdsChangeListener(this);
+        // 消费者管理器
         this.consumerManager = new ConsumerManager(this.consumerIdsChangeListener);
+        // 消费者过滤器管理
         this.consumerFilterManager = new ConsumerFilterManager(this);
+        /// 生产者管理
         this.producerManager = new ProducerManager();
         this.clientHousekeepingService = new ClientHousekeepingService(this);
+
         this.broker2Client = new Broker2Client(this);
         this.subscriptionGroupManager = new SubscriptionGroupManager(this);
         this.brokerOuterAPI = new BrokerOuterAPI(nettyClientConfig);
@@ -201,7 +215,7 @@ public class BrokerController {
 
         this.brokerStatsManager = new BrokerStatsManager(this.brokerConfig.getBrokerClusterName());
         this.setStoreHost(new InetSocketAddress(this.getBrokerConfig().getBrokerIP1(), this.getNettyServerConfig().getListenPort()));
-
+        // 快速失败
         this.brokerFastFailure = new BrokerFastFailure(this);
         this.configuration = new Configuration(
             log,
@@ -226,26 +240,36 @@ public class BrokerController {
         return queryThreadPoolQueue;
     }
 
+    /**
+     * 初始化
+     * @return
+     * @throws CloneNotSupportedException
+     */
     public boolean initialize() throws CloneNotSupportedException {
         boolean result = this.topicConfigManager.load();
 
         result = result && this.consumerOffsetManager.load();
+
+
         result = result && this.subscriptionGroupManager.load();
         result = result && this.consumerFilterManager.load();
-
+        // 都成功之后
         if (result) {
             try {
                 this.messageStore =
                     new DefaultMessageStore(this.messageStoreConfig, this.brokerStatsManager, this.messageArrivingListener,
                         this.brokerConfig);
+                // 是否开启dleger
                 if (messageStoreConfig.isEnableDLegerCommitLog()) {
                     DLedgerRoleChangeHandler roleChangeHandler = new DLedgerRoleChangeHandler(this, (DefaultMessageStore) messageStore);
                     ((DLedgerCommitLog)((DefaultMessageStore) messageStore).getCommitLog()).getdLedgerServer().getdLedgerLeaderElector().addRoleChangeHandler(roleChangeHandler);
                 }
                 this.brokerStats = new BrokerStats((DefaultMessageStore) this.messageStore);
-                //load plugin
+                //load plugin 加载插件
                 MessageStorePluginContext context = new MessageStorePluginContext(messageStoreConfig, brokerStatsManager, messageArrivingListener, brokerConfig);
+                // 其实就是一种把 messageStore 包了一层， 可以理解为修饰者模式
                 this.messageStore = MessageStoreFactory.build(context, this.messageStore);
+
                 this.messageStore.getDispatcherList().addFirst(new CommitLogDispatcherCalcBitMap(this.brokerConfig, this.consumerFilterManager));
             } catch (IOException e) {
                 result = false;

@@ -633,7 +633,7 @@ public class MQClientInstance {
                     // topic 路由信息实体
                     TopicRouteData topicRouteData;
 
-                    // 是默认 并且 defaultMQProducer 不是空
+                    // 是默认 并且 defaultMQProducer 不是空，当topic不存在的时候会进入这个if中
                     if (isDefault && defaultMQProducer != null) {
                         topicRouteData = this.mQClientAPIImpl.getDefaultTopicRouteInfoFromNameServer(defaultMQProducer.getCreateTopicKey(),
                             1000 * 3);

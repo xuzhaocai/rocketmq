@@ -21,20 +21,28 @@ import org.apache.rocketmq.common.constant.LoggerName;
 import org.apache.rocketmq.logging.InternalLogger;
 import org.apache.rocketmq.logging.InternalLoggerFactory;
 
+
 public abstract class ConfigManager {
     private static final InternalLogger log = InternalLoggerFactory.getLogger(LoggerName.COMMON_LOGGER_NAME);
 
     public abstract String encode();
 
+    /**
+     * 这里其实就是将 从配置文件中加载
+     * @return
+     */
     public boolean load() {
         String fileName = null;
         try {
+            // 获取配置文件的路径
             fileName = this.configFilePath();
+            //将 json 格式的文件转成 加载成json 字符串
             String jsonString = MixAll.file2String(fileName);
-
+            // 没有就加载 bak 文件就是配置文件.bak
             if (null == jsonString || jsonString.length() == 0) {
                 return this.loadBak();
             } else {
+                // 解码
                 this.decode(jsonString);
                 log.info("load " + fileName + " OK");
                 return true;
@@ -44,7 +52,7 @@ public abstract class ConfigManager {
             return this.loadBak();
         }
     }
-
+    // 获取配置文件
     public abstract String configFilePath();
 
     private boolean loadBak() {
@@ -64,7 +72,7 @@ public abstract class ConfigManager {
 
         return true;
     }
-
+    // 反序列化
     public abstract void decode(final String jsonString);
 
     public synchronized void persist() {

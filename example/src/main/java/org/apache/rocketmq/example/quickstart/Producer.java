@@ -37,13 +37,14 @@ public class Producer {
         DefaultMQProducer producer = new DefaultMQProducer("please_rename_unique_group_name");
         // 设置nameserv地址
         producer.setNamesrvAddr("127.0.0.1:9876");
+
         // 启动producer
         producer.start();
         int count =0;
         while(true) {
             try {
                 // 创建消息
-                Message msg = new Message("TopicTest" /* Topic */,
+                Message msg = new Message("EEEE" /* Topic */,
                     "TagA" /* Tag */,
                     ("Hello RocketMQ " + count++).getBytes(RemotingHelper.DEFAULT_CHARSET) /* Message body */
                 );

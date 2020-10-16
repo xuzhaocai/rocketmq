@@ -31,7 +31,7 @@ public interface MessageStore {
 
     /**
      * Load previously stored messages.
-     *
+     *  加载之前存储的消息
      * @return true if success; false otherwise.
      */
     boolean load();
@@ -55,7 +55,7 @@ public interface MessageStore {
 
     /**
      * Store a message into store.
-     *
+     * 将消息存储到存储器中
      * @param msg Message instance to store
      * @return result of store operation.
      */
