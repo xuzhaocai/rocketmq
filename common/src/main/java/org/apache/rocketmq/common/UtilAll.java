@@ -82,7 +82,7 @@ public class UtilAll {
 
         return sb.toString();
     }
-
+    //将offset 转成 文件名字
     public static String offset2FileName(final long offset) {
         final NumberFormat nf = NumberFormat.getInstance();
         nf.setMinimumIntegerDigits(20);
@@ -233,9 +233,9 @@ public class UtilAll {
         crc32.update(array, offset, length);
         return (int) (crc32.getValue() & 0x7FFFFFFF);
     }
-
+    // 字节转成str
     public static String bytes2string(byte[] src) {
-        char[] hexChars = new char[src.length * 2];
+        char[] hexChars = new char[src.length * 2];// 32
         for (int j = 0; j < src.length; j++) {
             int v = src[j] & 0xFF;
             hexChars[j * 2] = HEX_ARRAY[v >>> 4];

@@ -56,10 +56,10 @@ public class MessageDecoder {
         + 8 // 12 STOREHOSTADDRESS
         + 4 // 13 RECONSUMETIMES
         + 8; // 14 Prepared Transaction Offset
-
+    //创建消息id
     public static String createMessageId(final ByteBuffer input, final ByteBuffer addr, final long offset) {
         input.flip();
-        input.limit(MessageDecoder.MSG_ID_LENGTH);
+        input.limit(MessageDecoder.MSG_ID_LENGTH);//16
 
         input.put(addr);
         input.putLong(offset);

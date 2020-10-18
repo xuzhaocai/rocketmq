@@ -44,27 +44,27 @@ import sun.nio.ch.DirectBuffer;
 public class MappedFile extends ReferenceResource {
     public static final int OS_PAGE_SIZE = 1024 * 4;
     protected static final InternalLogger log = InternalLoggerFactory.getLogger(LoggerName.STORE_LOGGER_NAME);
-
+    //总的mmap 大小
     private static final AtomicLong TOTAL_MAPPED_VIRTUAL_MEMORY = new AtomicLong(0);
-
+    // 总的mmap 文件的大小
     private static final AtomicInteger TOTAL_MAPPED_FILES = new AtomicInteger(0);
     protected final AtomicInteger wrotePosition = new AtomicInteger(0);
     //ADD BY ChenYang
     protected final AtomicInteger committedPosition = new AtomicInteger(0);
     private final AtomicInteger flushedPosition = new AtomicInteger(0);
-    protected int fileSize;
+    protected int fileSize;//1g
     protected FileChannel fileChannel;
     /**
-     * Message will put to here first, and then reput to FileChannel if writeBuffer is not null.
+     * Message will put to here first, and then reput to FileChannel if writeBuffer is not null.  消息将首先放在这里，然后如果writeBuffer不为空，将重新放在FileChannel。
      */
     protected ByteBuffer writeBuffer = null;
     protected TransientStorePool transientStorePool = null;
     private String fileName;
-    private long fileFromOffset;
+    private long fileFromOffset;///这个MappedFile是从哪个偏移量开始的
     private File file;
     private MappedByteBuffer mappedByteBuffer;
     private volatile long storeTimestamp = 0;
-    private boolean firstCreateInQueue = false;
+    private boolean firstCreateInQueue = false;/// true的话表示它是第一个mappedFile
 
     public MappedFile() {
     }
@@ -149,14 +149,14 @@ public class MappedFile extends ReferenceResource {
         this.writeBuffer = transientStorePool.borrowBuffer();
         this.transientStorePool = transientStorePool;
     }
-
+    // 初始化
     private void init(final String fileName, final int fileSize) throws IOException {
         this.fileName = fileName;
-        this.fileSize = fileSize;
-        this.file = new File(fileName);
-        this.fileFromOffset = Long.parseLong(this.file.getName());
+        this.fileSize = fileSize;// 文件大小
+        this.file = new File(fileName);// 创建文件句柄
+        this.fileFromOffset = Long.parseLong(this.file.getName());///文件偏移量
         boolean ok = false;
-
+        // 这个就是判断file
         ensureDirOK(this.file.getParent());
 
         try {
@@ -189,7 +189,7 @@ public class MappedFile extends ReferenceResource {
     public FileChannel getFileChannel() {
         return fileChannel;
     }
-
+    // 追加消息到---》mappedFile中
     public AppendMessageResult appendMessage(final MessageExtBrokerInner msg, final AppendMessageCallback cb) {
         return appendMessagesInner(msg, cb);
     }
@@ -197,25 +197,25 @@ public class MappedFile extends ReferenceResource {
     public AppendMessageResult appendMessages(final MessageExtBatch messageExtBatch, final AppendMessageCallback cb) {
         return appendMessagesInner(messageExtBatch, cb);
     }
-
+    /// 追加消息
     public AppendMessageResult appendMessagesInner(final MessageExt messageExt, final AppendMessageCallback cb) {
         assert messageExt != null;
         assert cb != null;
-
+        // 获取写位置
         int currentPos = this.wrotePosition.get();
-
+        // 进行写入
         if (currentPos < this.fileSize) {
             ByteBuffer byteBuffer = writeBuffer != null ? writeBuffer.slice() : this.mappedByteBuffer.slice();
-            byteBuffer.position(currentPos);
+            byteBuffer.position(currentPos);//定位到当前位置
             AppendMessageResult result = null;
             if (messageExt instanceof MessageExtBrokerInner) {
                 result = cb.doAppend(this.getFileFromOffset(), byteBuffer, this.fileSize - currentPos, (MessageExtBrokerInner) messageExt);
-            } else if (messageExt instanceof MessageExtBatch) {
+            } else if (messageExt instanceof MessageExtBatch) {// 多个消息的写入
                 result = cb.doAppend(this.getFileFromOffset(), byteBuffer, this.fileSize - currentPos, (MessageExtBatch) messageExt);
             } else {
                 return new AppendMessageResult(AppendMessageStatus.UNKNOWN_ERROR);
             }
-            this.wrotePosition.addAndGet(result.getWroteBytes());
+            this.wrotePosition.addAndGet(result.getWroteBytes());// 其实记录一下这个 这个MappedFile 写到哪个位置了
             this.storeTimestamp = result.getStoreTimestamp();
             return result;
         }
@@ -268,24 +268,24 @@ public class MappedFile extends ReferenceResource {
     }
 
     /**
-     * @return The current flushed position
+     * @return The current flushed position  执行刷盘操作
      */
     public int flush(final int flushLeastPages) {
-        if (this.isAbleToFlush(flushLeastPages)) {
+        if (this.isAbleToFlush(flushLeastPages)) {// 是否有能力去刷盘
             if (this.hold()) {
                 int value = getReadPosition();
 
-                try {
-                    //We only append data to fileChannel or mappedByteBuffer, never both.
+                try {// 这里意思是要么刷fileChannel的 要么是刷 mappedByteBuffer里面的数据
+                    //We only append data to fileChannel or mappedByteBuffer, never both. 我们只向fileChannel或mappedByteBuffer添加数据，而从不同时向两者添加数据
                     if (writeBuffer != null || this.fileChannel.position() != 0) {
                         this.fileChannel.force(false);
-                    } else {
+                    } else {// mappedByteBuffer 刷盘·
                         this.mappedByteBuffer.force();
                     }
                 } catch (Throwable e) {
                     log.error("Error occurred when force data to disk.", e);
                 }
-
+                // 已经刷盘的位置
                 this.flushedPosition.set(value);
                 this.release();
             } else {
@@ -336,12 +336,12 @@ public class MappedFile extends ReferenceResource {
             }
         }
     }
-
+    // 判断
     private boolean isAbleToFlush(final int flushLeastPages) {
-        int flush = this.flushedPosition.get();
-        int write = getReadPosition();
+        int flush = this.flushedPosition.get();// 获取刷盘的位置
+        int write = getReadPosition();// 获取读的一个位置
 
-        if (this.isFull()) {
+        if (this.isFull()) {// 判断是否满了
             return true;
         }
 

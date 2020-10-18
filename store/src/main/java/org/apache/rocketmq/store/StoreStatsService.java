@@ -28,7 +28,7 @@ import org.apache.rocketmq.common.ServiceThread;
 import org.apache.rocketmq.common.constant.LoggerName;
 import org.apache.rocketmq.logging.InternalLogger;
 import org.apache.rocketmq.logging.InternalLoggerFactory;
-
+// 写入统计服务
 public class StoreStatsService extends ServiceThread {
     private static final InternalLogger log = InternalLoggerFactory.getLogger(LoggerName.STORE_LOGGER_NAME);
 
@@ -42,9 +42,9 @@ public class StoreStatsService extends ServiceThread {
     private static int printTPSInterval = 60 * 1;
 
     private final AtomicLong putMessageFailedTimes = new AtomicLong(0);
-
+    // 记录某个topic 被提交过多少次消息
     private final ConcurrentMap<String, AtomicLong> putMessageTopicTimesTotal =
-        new ConcurrentHashMap<String, AtomicLong>(128);
+        new ConcurrentHashMap<String, AtomicLong>(128);// 记录某个topic  被提交过消息的总大小
     private final ConcurrentMap<String, AtomicLong> putMessageTopicSizeTotal =
         new ConcurrentHashMap<String, AtomicLong>(128);
 
@@ -56,9 +56,9 @@ public class StoreStatsService extends ServiceThread {
     private final LinkedList<CallSnapshot> getTimesFoundList = new LinkedList<CallSnapshot>();
     private final LinkedList<CallSnapshot> getTimesMissList = new LinkedList<CallSnapshot>();
     private final LinkedList<CallSnapshot> transferedMsgCountList = new LinkedList<CallSnapshot>();
-    private volatile AtomicLong[] putMessageDistributeTime;
+    private volatile AtomicLong[] putMessageDistributeTime;// store message 耗时的一个统计
     private long messageStoreBootTimestamp = System.currentTimeMillis();
-    private volatile long putMessageEntireTimeMax = 0;
+    private volatile long putMessageEntireTimeMax = 0;// 存储消息的一个最大耗时
     private volatile long getMessageEntireTimeMax = 0;
     // for putMessageEntireTimeMax
     private ReentrantLock lockPut = new ReentrantLock();
@@ -553,7 +553,7 @@ public class StoreStatsService extends ServiceThread {
         }
         return rs;
     }
-
+    // 获取对应topic 的 putMeassage 次数的统计
     public AtomicLong getSinglePutMessageTopicTimesTotal(String topic) {
         AtomicLong rs = putMessageTopicTimesTotal.get(topic);
         if (null == rs) {

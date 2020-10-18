@@ -17,17 +17,17 @@
 package org.apache.rocketmq.store;
 
 /**
- * When write a message to the commit log, returns results
+ * When write a message to the commit log, returns results  追加消息结果 的实体
  */
 public class AppendMessageResult {
     // Return code
     private AppendMessageStatus status;
     // Where to start writing
-    private long wroteOffset;
+    private long wroteOffset;// 从哪开始写的，一个总的偏移量
     // Write Bytes
-    private int wroteBytes;
+    private int wroteBytes;// 写入了多少字节
     // Message ID
-    private String msgId;
+    private String msgId;// 消息id
     // Message storage timestamp
     private long storeTimestamp;
     // Consume queue's offset(step by one)
@@ -42,13 +42,13 @@ public class AppendMessageResult {
 
     public AppendMessageResult(AppendMessageStatus status, long wroteOffset, int wroteBytes, String msgId,
         long storeTimestamp, long logicsOffset, long pagecacheRT) {
-        this.status = status;
-        this.wroteOffset = wroteOffset;
-        this.wroteBytes = wroteBytes;
-        this.msgId = msgId;
-        this.storeTimestamp = storeTimestamp;
-        this.logicsOffset = logicsOffset;
-        this.pagecacheRT = pagecacheRT;
+        this.status = status;// 写入状态
+        this.wroteOffset = wroteOffset;// 写入的offset， 它这应该算是一个总的offset
+        this.wroteBytes = wroteBytes;// 写入了多少字节
+        this.msgId = msgId;// 消息id
+        this.storeTimestamp = storeTimestamp;// 写入的一个时间戳
+        this.logicsOffset = logicsOffset;// queue的一个偏移量
+        this.pagecacheRT = pagecacheRT;// pagecache 的响应时间，也就是现在从获取一开始获取锁的时间
     }
 
     public long getPagecacheRT() {

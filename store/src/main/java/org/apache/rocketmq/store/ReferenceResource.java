@@ -26,7 +26,7 @@ public abstract class ReferenceResource {
 
     public synchronized boolean hold() {
         if (this.isAvailable()) {
-            if (this.refCount.getAndIncrement() > 0) {
+            if (this.refCount.getAndIncrement() > 0) {// 自增1
                 return true;
             } else {
                 this.refCount.getAndDecrement();
@@ -54,7 +54,7 @@ public abstract class ReferenceResource {
     }
 
     public void release() {
-        long value = this.refCount.decrementAndGet();
+        long value = this.refCount.decrementAndGet();//自减1
         if (value > 0)
             return;
 
