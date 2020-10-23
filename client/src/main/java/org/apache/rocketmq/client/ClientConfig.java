@@ -27,6 +27,9 @@ import org.apache.rocketmq.remoting.protocol.LanguageCode;
  */
 public class ClientConfig {
     public static final String SEND_MESSAGE_WITH_VIP_CHANNEL_PROPERTY = "com.rocketmq.sendMessageWithVIPChannel";
+
+
+    // nameserv 地址
     private String namesrvAddr = System.getProperty(MixAll.NAMESRV_ADDR_PROPERTY, System.getenv(MixAll.NAMESRV_ADDR_ENV));// nameserver 地址
     private String clientIP = RemotingUtil.getLocalAddress();// client的ip地址
     private String instanceName = System.getProperty("rocketmq.client.name", "DEFAULT");// 实例名字 默认是  DEFAULT

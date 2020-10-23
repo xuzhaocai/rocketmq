@@ -51,8 +51,8 @@ import org.apache.rocketmq.remoting.exception.RemotingException;
 
 public class PullAPIWrapper {
     private final InternalLogger log = ClientLogger.getLog();
-    private final MQClientInstance mQClientFactory;
-    private final String consumerGroup;
+    private final MQClientInstance mQClientFactory;//MQinstance
+    private final String consumerGroup;// 消费者组
     private final boolean unitMode;
     private ConcurrentMap<MessageQueue, AtomicLong/* brokerId */> pullFromWhichNodeTable =
         new ConcurrentHashMap<MessageQueue, AtomicLong>(32);

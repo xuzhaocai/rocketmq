@@ -52,7 +52,7 @@ public class ConsumeMessageConcurrentlyService implements ConsumeMessageService 
     private static final InternalLogger log = ClientLogger.getLog();
     private final DefaultMQPushConsumerImpl defaultMQPushConsumerImpl;
     private final DefaultMQPushConsumer defaultMQPushConsumer;
-    private final MessageListenerConcurrently messageListener;
+    private final MessageListenerConcurrently messageListener;// 监听器
     private final BlockingQueue<Runnable> consumeRequestQueue;
     private final ThreadPoolExecutor consumeExecutor;
     private final String consumerGroup;
@@ -62,33 +62,43 @@ public class ConsumeMessageConcurrentlyService implements ConsumeMessageService 
 
     public ConsumeMessageConcurrentlyService(DefaultMQPushConsumerImpl defaultMQPushConsumerImpl,
         MessageListenerConcurrently messageListener) {
+
+
         this.defaultMQPushConsumerImpl = defaultMQPushConsumerImpl;
         this.messageListener = messageListener;
 
         this.defaultMQPushConsumer = this.defaultMQPushConsumerImpl.getDefaultMQPushConsumer();
-        this.consumerGroup = this.defaultMQPushConsumer.getConsumerGroup();
-        this.consumeRequestQueue = new LinkedBlockingQueue<Runnable>();
 
+        // 消费者组
+        this.consumerGroup = this.defaultMQPushConsumer.getConsumerGroup();
+
+        // 消费请求队列
+        this.consumeRequestQueue = new LinkedBlockingQueue<Runnable>();// 这个玩意没有限制大小 ，能把内存撑爆
+        // 消费线程池
         this.consumeExecutor = new ThreadPoolExecutor(
-            this.defaultMQPushConsumer.getConsumeThreadMin(),
-            this.defaultMQPushConsumer.getConsumeThreadMax(),
+            this.defaultMQPushConsumer.getConsumeThreadMin(),// 最小消费线程数 20
+            this.defaultMQPushConsumer.getConsumeThreadMax(), /// 最大消费线程数60
             1000 * 60,
             TimeUnit.MILLISECONDS,
             this.consumeRequestQueue,
             new ThreadFactoryImpl("ConsumeMessageThread_"));
 
+
+
+
         this.scheduledExecutorService = Executors.newSingleThreadScheduledExecutor(new ThreadFactoryImpl("ConsumeMessageScheduledThread_"));
         this.cleanExpireMsgExecutors = Executors.newSingleThreadScheduledExecutor(new ThreadFactoryImpl("CleanExpireMsgScheduledThread_"));
     }
-
+    // 启动服务
     public void start() {
-        this.cleanExpireMsgExecutors.scheduleAtFixedRate(new Runnable() {
 
+        this.cleanExpireMsgExecutors.scheduleAtFixedRate(new Runnable() {
             @Override
             public void run() {
+                //清理过期消息
                 cleanExpireMsg();
             }
-
+            ///15分钟                                        // 15分钟默认
         }, this.defaultMQPushConsumer.getConsumeTimeout(), this.defaultMQPushConsumer.getConsumeTimeout(), TimeUnit.MINUTES);
     }
 

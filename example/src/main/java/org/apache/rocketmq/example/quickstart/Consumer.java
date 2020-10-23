@@ -61,6 +61,8 @@ public class Consumer {
 
         /*
          *  Register callback to execute on arrival of messages fetched from brokers.
+         *
+         *  消息到达的时候执行
          */
         consumer.registerMessageListener(new MessageListenerConcurrently() {
 
@@ -68,6 +70,9 @@ public class Consumer {
             public ConsumeConcurrentlyStatus consumeMessage(List<MessageExt> msgs,
                 ConsumeConcurrentlyContext context) {
                 System.out.printf("%s Receive New Messages: %s %n", Thread.currentThread().getName(), msgs);
+
+
+                // 执行状态的返回
                 return ConsumeConcurrentlyStatus.CONSUME_SUCCESS;
             }
         });

@@ -42,6 +42,8 @@ import org.apache.rocketmq.common.protocol.heartbeat.SubscriptionData;
 
 /**
  * Base class for rebalance algorithm
+ *
+ * 用于重新平衡算法的基类
  */
 public abstract class RebalanceImpl {
     protected static final InternalLogger log = ClientLogger.getLog();
@@ -51,15 +53,15 @@ public abstract class RebalanceImpl {
     protected final ConcurrentMap<String /* topic */, SubscriptionData> subscriptionInner =
         new ConcurrentHashMap<String, SubscriptionData>();
     protected String consumerGroup;
-    protected MessageModel messageModel;
+    protected MessageModel messageModel;//广播还是 集群
     protected AllocateMessageQueueStrategy allocateMessageQueueStrategy;
     protected MQClientInstance mQClientFactory;
 
     public RebalanceImpl(String consumerGroup, MessageModel messageModel,
         AllocateMessageQueueStrategy allocateMessageQueueStrategy,
         MQClientInstance mQClientFactory) {
-        this.consumerGroup = consumerGroup;
-        this.messageModel = messageModel;
+        this.consumerGroup = consumerGroup;// 消息消费者组
+        this.messageModel = messageModel;// 消息模型
         this.allocateMessageQueueStrategy = allocateMessageQueueStrategy;
         this.mQClientFactory = mQClientFactory;
     }

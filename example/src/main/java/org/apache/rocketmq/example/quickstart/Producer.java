@@ -40,11 +40,14 @@ public class Producer {
 
         // 启动producer
         producer.start();
+
+        long start= System.currentTimeMillis();
+
         int count =0;
         while(true) {
             try {
                 // 创建消息
-                Message msg = new Message("EEEE" /* Topic */,
+                Message msg = new Message("TestBroker" /* Topic */,
                     "TagA" /* Tag */,
                     ("Hello RocketMQ " + count++).getBytes(RemotingHelper.DEFAULT_CHARSET) /* Message body */
                 );
@@ -55,6 +58,11 @@ public class Producer {
                 e.printStackTrace();
                 Thread.sleep(1000);
             }
+            if (++count==100)// 5093
+                break;
         }
+        long rsp = System.currentTimeMillis()-start;
+        System.out.printf("耗时："+rsp);
+
     }
 }

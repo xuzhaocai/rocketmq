@@ -169,7 +169,6 @@ public class MQClientInstance {
                     info.getMessageQueueList().add(mq);
                 }
             }
-
             info.setOrderTopic(true);
         } else {
             List<QueueData> qds = route.getQueueDatas();
@@ -183,7 +182,6 @@ public class MQClientInstance {
                             break;
                         }
                     }
-
                     if (null == brokerData) {
                         continue;
                     }
@@ -434,12 +432,18 @@ public class MQClientInstance {
 
         while (it.hasNext()) {
             Entry<String, MQConsumerInner> entry = it.next();
+
+            // 获取了一下该consumer上面的订阅信息
             Set<SubscriptionData> subscriptionInner = entry.getValue().subscriptions();
             if (subscriptionInner == null || subscriptionInner.isEmpty()) {
                 return;
             }
 
+
+
+
             for (SubscriptionData subscriptionData : subscriptionInner) {
+                // 判断是不是根据这个tag 来做过滤的
                 if (ExpressionType.isTagType(subscriptionData.getExpressionType())) {
                     continue;
                 }
@@ -892,6 +896,12 @@ public class MQClientInstance {
         }
     }
 
+    /**
+     * 注册consumer
+     * @param group
+     * @param consumer
+     * @return
+     */
     public boolean registerConsumer(final String group, final MQConsumerInner consumer) {
         if (null == group || null == consumer) {
             return false;

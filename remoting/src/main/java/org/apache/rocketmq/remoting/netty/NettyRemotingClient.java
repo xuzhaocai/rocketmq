@@ -468,19 +468,15 @@ public class NettyRemotingClient extends NettyRemotingAbstract implements Remoti
                         return cw.getChannel();
                     }
                 }
-
                 if (addrList != null && !addrList.isEmpty()) {
                     // 轮着获取一个地址，与循环中的i无关
                     for (int i = 0; i < addrList.size(); i++) {
-
                         int index = this.namesrvIndex.incrementAndGet();
                         index = Math.abs(index);
                         index = index % addrList.size();
                         String newAddr = addrList.get(index);
-
                         this.namesrvAddrChoosed.set(newAddr);
                         log.info("new name server is chosen. OLD: {} , NEW: {}. namesrvIndex = {}", addr, newAddr, namesrvIndex);
-
                         // 根据地址 创建 channel
                         Channel channelNew = this.createChannel(newAddr);
                         if (channelNew != null) {
