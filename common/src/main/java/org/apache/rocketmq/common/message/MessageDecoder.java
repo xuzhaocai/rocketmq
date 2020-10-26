@@ -249,36 +249,43 @@ public class MessageDecoder {
         try {
 
             MessageExt msgExt;
-            if (isClient) {
+            if (isClient) {//是否是客户端
                 msgExt = new MessageClientExt();
             } else {
                 msgExt = new MessageExt();
             }
 
             // 1 TOTALSIZE
-            int storeSize = byteBuffer.getInt();
-            msgExt.setStoreSize(storeSize);
+            int storeSize = byteBuffer.getInt();//获取这条消息的总长度
+            msgExt.setStoreSize(storeSize);// 写入总长度
 
             // 2 MAGICCODE
             byteBuffer.getInt();
 
             // 3 BODYCRC
+            // body的一个crc
             int bodyCRC = byteBuffer.getInt();
             msgExt.setBodyCRC(bodyCRC);
 
             // 4 QUEUEID
+
+            /// 获取对应的queueId
             int queueId = byteBuffer.getInt();
             msgExt.setQueueId(queueId);
 
             // 5 FLAG
+            // flag
             int flag = byteBuffer.getInt();
             msgExt.setFlag(flag);
 
             // 6 QUEUEOFFSET
+
+            // queue offset
             long queueOffset = byteBuffer.getLong();
             msgExt.setQueueOffset(queueOffset);
 
             // 7 PHYSICALOFFSET
+            // commitLog的一个offset
             long physicOffset = byteBuffer.getLong();
             msgExt.setCommitLogOffset(physicOffset);
 
@@ -287,26 +294,31 @@ public class MessageDecoder {
             msgExt.setSysFlag(sysFlag);
 
             // 9 BORNTIMESTAMP
+            /// 生产时间
             long bornTimeStamp = byteBuffer.getLong();
             msgExt.setBornTimestamp(bornTimeStamp);
 
             // 10 BORNHOST
+            // 生产地
             byte[] bornHost = new byte[4];
             byteBuffer.get(bornHost, 0, 4);
             int port = byteBuffer.getInt();
             msgExt.setBornHost(new InetSocketAddress(InetAddress.getByAddress(bornHost), port));
 
             // 11 STORETIMESTAMP
+            // 存储消息的时间
             long storeTimestamp = byteBuffer.getLong();
             msgExt.setStoreTimestamp(storeTimestamp);
 
             // 12 STOREHOST
+            // 存储消息的host
             byte[] storeHost = new byte[4];
             byteBuffer.get(storeHost, 0, 4);
             port = byteBuffer.getInt();
             msgExt.setStoreHost(new InetSocketAddress(InetAddress.getByAddress(storeHost), port));
 
             // 13 RECONSUMETIMES
+            // 重新消费次数
             int reconsumeTimes = byteBuffer.getInt();
             msgExt.setReconsumeTimes(reconsumeTimes);
 
@@ -325,7 +337,7 @@ public class MessageDecoder {
                     if (deCompressBody && (sysFlag & MessageSysFlag.COMPRESSED_FLAG) == MessageSysFlag.COMPRESSED_FLAG) {
                         body = UtilAll.uncompress(body);
                     }
-
+                    // body
                     msgExt.setBody(body);
                 } else {
                     byteBuffer.position(byteBuffer.position() + bodyLen);
@@ -348,10 +360,14 @@ public class MessageDecoder {
                 msgExt.setProperties(map);
             }
 
-            ByteBuffer byteBufferMsgId = ByteBuffer.allocate(MSG_ID_LENGTH);
+
+
+            ByteBuffer byteBufferMsgId = ByteBuffer.allocate(MSG_ID_LENGTH);//16
+
+            ///生成消息ID
             String msgId = createMessageId(byteBufferMsgId, msgExt.getStoreHostBytes(), msgExt.getCommitLogOffset());
             msgExt.setMsgId(msgId);
-
+            // 设置offsetMsgId
             if (isClient) {
                 ((MessageClientExt) msgExt).setOffsetMsgId(msgId);
             }
@@ -363,14 +379,17 @@ public class MessageDecoder {
 
         return null;
     }
-
+    // 解码消息
     public static List<MessageExt> decodes(java.nio.ByteBuffer byteBuffer) {
         return decodes(byteBuffer, true);
     }
-
+    // 解码一堆
     public static List<MessageExt> decodes(java.nio.ByteBuffer byteBuffer, final boolean readBody) {
         List<MessageExt> msgExts = new ArrayList<MessageExt>();
         while (byteBuffer.hasRemaining()) {
+
+
+            // 这里是一个一个解码  MessageExt
             MessageExt msgExt = clientDecode(byteBuffer, readBody);
             if (null != msgExt) {
                 msgExts.add(msgExt);

@@ -22,9 +22,11 @@ import java.util.concurrent.locks.AbstractQueuedSynchronizer;
 
 /**
  * Add reset feature for @see java.util.concurrent.CountDownLatch
+ *
+ * 这里是比  CountDownLatch  多了个重置属性
  */
 public class CountDownLatch2 {
-    private final Sync sync;
+    private final Sync sync;//
 
     /**
      * Constructs a {@code CountDownLatch2} initialized with the given count.
@@ -36,6 +38,8 @@ public class CountDownLatch2 {
     public CountDownLatch2(int count) {
         if (count < 0)
             throw new IllegalArgumentException("count < 0");
+
+        // 创建一个同步锁
         this.sync = new Sync(count);
     }
 
@@ -157,6 +161,8 @@ public class CountDownLatch2 {
     /**
      * Synchronization control For CountDownLatch2.
      * Uses AQS state to represent count.
+     * 使用AQS创建的同步锁
+     * 同步锁
      */
     private static final class Sync extends AbstractQueuedSynchronizer {
         private static final long serialVersionUID = 4982264981922014374L;
@@ -164,7 +170,7 @@ public class CountDownLatch2 {
         private final int startCount;
 
         Sync(int count) {
-            this.startCount = count;
+            this.startCount = count;//起始count
             setState(count);
         }
 
@@ -187,7 +193,7 @@ public class CountDownLatch2 {
                     return nextc == 0;
             }
         }
-
+        // 重置
         protected void reset() {
             setState(startCount);
         }

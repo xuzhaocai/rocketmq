@@ -42,7 +42,7 @@ public class StatsItemSet {
     }
 
     public void init() {
-
+        ///10s
         this.scheduledExecutorService.scheduleAtFixedRate(new Runnable() {
             @Override
             public void run() {
@@ -52,7 +52,7 @@ public class StatsItemSet {
                 }
             }
         }, 0, 10, TimeUnit.SECONDS);
-
+        // 10分钟
         this.scheduledExecutorService.scheduleAtFixedRate(new Runnable() {
             @Override
             public void run() {
@@ -62,7 +62,7 @@ public class StatsItemSet {
                 }
             }
         }, 0, 10, TimeUnit.MINUTES);
-
+        // 一小时
         this.scheduledExecutorService.scheduleAtFixedRate(new Runnable() {
             @Override
             public void run() {
@@ -72,7 +72,7 @@ public class StatsItemSet {
                 }
             }
         }, 0, 1, TimeUnit.HOURS);
-
+        // 60s
         this.scheduledExecutorService.scheduleAtFixedRate(new Runnable() {
             @Override
             public void run() {
@@ -82,7 +82,7 @@ public class StatsItemSet {
                 }
             }
         }, Math.abs(UtilAll.computNextMinutesTimeMillis() - System.currentTimeMillis()), 1000 * 60, TimeUnit.MILLISECONDS);
-
+        /// 1小时
         this.scheduledExecutorService.scheduleAtFixedRate(new Runnable() {
             @Override
             public void run() {
@@ -92,7 +92,7 @@ public class StatsItemSet {
                 }
             }
         }, Math.abs(UtilAll.computNextHourTimeMillis() - System.currentTimeMillis()), 1000 * 60 * 60, TimeUnit.MILLISECONDS);
-
+        // 一天
         this.scheduledExecutorService.scheduleAtFixedRate(new Runnable() {
             @Override
             public void run() {

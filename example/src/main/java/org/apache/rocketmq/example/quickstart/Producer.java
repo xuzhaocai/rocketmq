@@ -58,7 +58,7 @@ public class Producer {
                 e.printStackTrace();
                 Thread.sleep(1000);
             }
-            if (++count==100)// 5093
+            if (++count==3)// 5093
                 break;
         }
         long rsp = System.currentTimeMillis()-start;

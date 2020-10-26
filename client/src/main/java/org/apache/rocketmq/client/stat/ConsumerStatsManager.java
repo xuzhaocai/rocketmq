@@ -34,11 +34,11 @@ public class ConsumerStatsManager {
     private static final String TOPIC_AND_GROUP_PULL_TPS = "PULL_TPS";
     private static final String TOPIC_AND_GROUP_PULL_RT = "PULL_RT";
 
-    private final StatsItemSet topicAndGroupConsumeOKTPS;
-    private final StatsItemSet topicAndGroupConsumeRT;
-    private final StatsItemSet topicAndGroupConsumeFailedTPS;
-    private final StatsItemSet topicAndGroupPullTPS;
-    private final StatsItemSet topicAndGroupPullRT;
+    private final StatsItemSet topicAndGroupConsumeOKTPS;///消费成功Tps
+    private final StatsItemSet topicAndGroupConsumeRT;/// 消费的响应时间RT
+    private final StatsItemSet topicAndGroupConsumeFailedTPS;// 消费失败tps
+    private final StatsItemSet topicAndGroupPullTPS;//拉取的一个tps
+    private final StatsItemSet topicAndGroupPullRT;///拉取的RT 响应时间
 
     public ConsumerStatsManager(final ScheduledExecutorService scheduledExecutorService) {
         this.topicAndGroupConsumeOKTPS =

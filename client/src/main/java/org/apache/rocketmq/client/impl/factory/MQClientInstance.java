@@ -109,7 +109,7 @@ public class MQClientInstance {
         }
     });
     private final ClientRemotingProcessor clientRemotingProcessor;
-    private final PullMessageService pullMessageService;
+    private final PullMessageService pullMessageService;// 拉取消息
     private final RebalanceService rebalanceService;
     private final DefaultMQProducer defaultMQProducer;
     private final ConsumerStatsManager consumerStatsManager;
@@ -232,9 +232,9 @@ public class MQClientInstance {
                     // Start various schedule tasks
                     this.startScheduledTask();// 开启任务调度
                     // Start pull service
-                    this.pullMessageService.start();//开启拉去服务
+                    this.pullMessageService.start();//开启拉取消息服务
                     // Start rebalance service
-                    this.rebalanceService.start();// 开启平衡服务
+                    this.rebalanceService.start();// 开启负载均衡服务
                     // Start push service
                     this.defaultMQProducer.getDefaultMQProducerImpl().start(false);
                     log.info("the client factory [{}] start OK", this.clientId);
@@ -555,6 +555,7 @@ public class MQClientInstance {
         }
 
         if (!this.brokerAddrTable.isEmpty()) {
+            //自增次数
             long times = this.sendHeartbeatTimesTotal.getAndIncrement();
             Iterator<Entry<String, HashMap<Long, String>>> it = this.brokerAddrTable.entrySet().iterator();
             while (it.hasNext()) {
@@ -577,7 +578,7 @@ public class MQClientInstance {
                                     this.brokerVersionTable.put(brokerName, new HashMap<String, Integer>(4));
                                 }
                                 this.brokerVersionTable.get(brokerName).put(addr, version);
-                                if (times % 20 == 0) {
+                                if (times % 20 == 0) {// 每20次一次打印日志
                                     log.info("send heart beat to broker[{} {} {}] success", brokerName, id, addr);
                                     log.info(heartbeatData.toString());
                                 }
@@ -731,10 +732,10 @@ public class MQClientInstance {
             MQConsumerInner impl = entry.getValue();
             if (impl != null) {
                 ConsumerData consumerData = new ConsumerData();
-                consumerData.setGroupName(impl.groupName());
-                consumerData.setConsumeType(impl.consumeType());
-                consumerData.setMessageModel(impl.messageModel());
-                consumerData.setConsumeFromWhere(impl.consumeFromWhere());
+                consumerData.setGroupName(impl.groupName());// 消费者组
+                consumerData.setConsumeType(impl.consumeType());//消费类型
+                consumerData.setMessageModel(impl.messageModel());//
+                consumerData.setConsumeFromWhere(impl.consumeFromWhere());// 消费位置
                 consumerData.getSubscriptionDataSet().addAll(impl.subscriptions());
                 consumerData.setUnitMode(impl.isUnitMode());
 
@@ -1007,6 +1008,9 @@ public class MQClientInstance {
         this.rebalanceService.wakeup();
     }
 
+    /**
+     * 重新负载
+     */
     public void doRebalance() {
         for (Map.Entry<String, MQConsumerInner> entry : this.consumerTable.entrySet()) {
             MQConsumerInner impl = entry.getValue();
@@ -1023,7 +1027,7 @@ public class MQClientInstance {
     public MQProducerInner selectProducer(final String group) {
         return this.producerTable.get(group);
     }
-
+    // 获取consumer
     public MQConsumerInner selectConsumer(final String group) {
         return this.consumerTable.get(group);
     }
@@ -1108,7 +1112,7 @@ public class MQClientInstance {
     }
 
     public List<String> findConsumerIdList(final String topic, final String group) {
-        String brokerAddr = this.findBrokerAddrByTopic(topic);
+        String brokerAddr = this.findBrokerAddrByTopic(topic);///获取broker addr
         if (null == brokerAddr) {
             this.updateTopicRouteInfoFromNameServer(topic);
             brokerAddr = this.findBrokerAddrByTopic(topic);

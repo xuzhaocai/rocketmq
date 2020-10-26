@@ -693,7 +693,7 @@ public class MQClientAPIImpl {
 
         throw new MQBrokerException(response.getCode(), response.getRemark());
     }
-
+    /// 拉取请求
     public PullResult pullMessage(
         final String addr,
         final PullMessageRequestHeader requestHeader,
@@ -719,7 +719,7 @@ public class MQClientAPIImpl {
 
         return null;
     }
-
+    // 异步拉取消息
     private void pullMessageAsync(
         final String addr,
         final RemotingCommand request,
@@ -729,29 +729,38 @@ public class MQClientAPIImpl {
         this.remotingClient.invokeAsync(addr, request, timeoutMillis, new InvokeCallback() {
             @Override
             public void operationComplete(ResponseFuture responseFuture) {
+                // 获取响应
                 RemotingCommand response = responseFuture.getResponseCommand();
                 if (response != null) {
                     try {
                         PullResult pullResult = MQClientAPIImpl.this.processPullResponse(response);
                         assert pullResult != null;
+
+                        // 成功
                         pullCallback.onSuccess(pullResult);
-                    } catch (Exception e) {
+                    } catch (Exception e) {// 异常
                         pullCallback.onException(e);
                     }
                 } else {
+
+                    ///   TODO   后期再研究
+                    // 没请求成功
                     if (!responseFuture.isSendRequestOK()) {
                         pullCallback.onException(new MQClientException("send request failed to " + addr + ". Request: " + request, responseFuture.getCause()));
-                    } else if (responseFuture.isTimeout()) {
+
+                    } else if (responseFuture.isTimeout()) {/// 超时
                         pullCallback.onException(new MQClientException("wait response from " + addr + " timeout :" + responseFuture.getTimeoutMillis() + "ms" + ". Request: " + request,
                             responseFuture.getCause()));
                     } else {
+
+                        //其他异常
                         pullCallback.onException(new MQClientException("unknown reason. addr: " + addr + ", timeoutMillis: " + timeoutMillis + ". Request: " + request, responseFuture.getCause()));
                     }
                 }
             }
         });
     }
-
+    /// 同步拉取消息
     private PullResult pullMessageSync(
         final String addr,
         final RemotingCommand request,
@@ -761,15 +770,16 @@ public class MQClientAPIImpl {
         assert response != null;
         return this.processPullResponse(response);
     }
-
+    // 处理拉取消息的响应
     private PullResult processPullResponse(
         final RemotingCommand response) throws MQBrokerException, RemotingCommandException {
+        /// 设置状态
         PullStatus pullStatus = PullStatus.NO_NEW_MSG;
         switch (response.getCode()) {
-            case ResponseCode.SUCCESS:
+            case ResponseCode.SUCCESS:// 有新消息
                 pullStatus = PullStatus.FOUND;
                 break;
-            case ResponseCode.PULL_NOT_FOUND:
+            case ResponseCode.PULL_NOT_FOUND:// 没有新消息
                 pullStatus = PullStatus.NO_NEW_MSG;
                 break;
             case ResponseCode.PULL_RETRY_IMMEDIATELY:
@@ -786,8 +796,13 @@ public class MQClientAPIImpl {
         PullMessageResponseHeader responseHeader =
             (PullMessageResponseHeader) response.decodeCommandCustomHeader(PullMessageResponseHeader.class);
 
-        return new PullResultExt(pullStatus, responseHeader.getNextBeginOffset(), responseHeader.getMinOffset(),
-            responseHeader.getMaxOffset(), null, responseHeader.getSuggestWhichBrokerId(), response.getBody());
+        return new PullResultExt(pullStatus,// 拉取状态
+                                    responseHeader.getNextBeginOffset(),// 下一个开始的offset
+                                    responseHeader.getMinOffset(),// 最大offset
+                                    responseHeader.getMaxOffset(),// 最小offset
+                        null,
+                                    responseHeader.getSuggestWhichBrokerId(),// 建议下次拉取的brokerId
+                                    response.getBody());// 内容
     }
 
     public MessageExt viewMessage(final String addr, final long phyoffset, final long timeoutMillis)
@@ -993,18 +1008,34 @@ public class MQClientAPIImpl {
         this.remotingClient.invokeOneway(MixAll.brokerVIPChannel(this.clientConfig.isVipChannelEnabled(), addr), request, timeoutMillis);
     }
 
+    /**
+     * 发送心跳
+     * @param addr  地址
+     * @param heartbeatData  心跳内容
+     * @param timeoutMillis  超时时间
+     * @return
+     * @throws RemotingException
+     * @throws MQBrokerException
+     * @throws InterruptedException
+     */
     public int sendHearbeat(
         final String addr,
         final HeartbeatData heartbeatData,
         final long timeoutMillis
     ) throws RemotingException, MQBrokerException, InterruptedException {
+
+        // 封装RemotingCommand
         RemotingCommand request = RemotingCommand.createRequestCommand(RequestCode.HEART_BEAT, null);
         request.setLanguage(clientConfig.getLanguage());
         request.setBody(heartbeatData.encode());
+
+        // 同步调用
         RemotingCommand response = this.remotingClient.invokeSync(addr, request, timeoutMillis);
         assert response != null;
         switch (response.getCode()) {
             case ResponseCode.SUCCESS: {
+
+                // 返回一个version
                 return response.getVersion();
             }
             default:

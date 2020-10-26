@@ -54,6 +54,9 @@ public class PullAPIWrapper {
     private final MQClientInstance mQClientFactory;//MQinstance
     private final String consumerGroup;// 消费者组
     private final boolean unitMode;
+
+
+    // 记录了 messagequeue 对应 拉取消息的broker
     private ConcurrentMap<MessageQueue, AtomicLong/* brokerId */> pullFromWhichNodeTable =
         new ConcurrentHashMap<MessageQueue, AtomicLong>(32);
     private volatile boolean connectBrokerByUser = false;
@@ -66,17 +69,39 @@ public class PullAPIWrapper {
         this.consumerGroup = consumerGroup;
         this.unitMode = unitMode;
     }
-
+    // 处理拉取消息的结果
     public PullResult processPullResult(final MessageQueue mq, final PullResult pullResult,
         final SubscriptionData subscriptionData) {
+
+
+
+
         PullResultExt pullResultExt = (PullResultExt) pullResult;
 
+
+        /// 更新下次从哪broker上面拉消息
+        /// 比较智能的一个地方
         this.updatePullFromWhichNode(mq, pullResultExt.getSuggestWhichBrokerId());
+
+
+
+
         if (PullStatus.FOUND == pullResult.getPullStatus()) {
+
+
+
+
             ByteBuffer byteBuffer = ByteBuffer.wrap(pullResultExt.getMessageBinary());
+
+            // 解码
             List<MessageExt> msgList = MessageDecoder.decodes(byteBuffer);
 
+
+
+            /// ---------进行过滤------
             List<MessageExt> msgListFilterAgain = msgList;
+
+            // tag 符合的
             if (!subscriptionData.getTagsSet().isEmpty() && !subscriptionData.isClassFilterMode()) {
                 msgListFilterAgain = new ArrayList<MessageExt>(msgList.size());
                 for (MessageExt msg : msgList) {
@@ -87,7 +112,7 @@ public class PullAPIWrapper {
                     }
                 }
             }
-
+            // 有钩子的话 执行钩子
             if (this.hasHook()) {
                 FilterMessageContext filterMessageContext = new FilterMessageContext();
                 filterMessageContext.setUnitMode(unitMode);
@@ -97,9 +122,15 @@ public class PullAPIWrapper {
 
             for (MessageExt msg : msgListFilterAgain) {
                 String traFlag = msg.getProperty(MessageConst.PROPERTY_TRANSACTION_PREPARED);
+
+
+                // 解析TransactionId
                 if (traFlag != null && Boolean.parseBoolean(traFlag)) {
+
                     msg.setTransactionId(msg.getProperty(MessageConst.PROPERTY_UNIQ_CLIENT_MESSAGE_ID_KEYIDX));
                 }
+
+                // 给每个msg 上面添加一个最小offset  ， 添加一个最大offset
                 MessageAccessor.putProperty(msg, MessageConst.PROPERTY_MIN_OFFSET,
                     Long.toString(pullResult.getMinOffset()));
                 MessageAccessor.putProperty(msg, MessageConst.PROPERTY_MAX_OFFSET,
@@ -113,8 +144,12 @@ public class PullAPIWrapper {
 
         return pullResult;
     }
-
+    // 更新从哪个broker上面拉取消息
     public void updatePullFromWhichNode(final MessageQueue mq, final long brokerId) {
+
+
+
+        /// 更新一下 MessageQueue对应 去哪个 broker上面 拉取消息
         AtomicLong suggest = this.pullFromWhichNodeTable.get(mq);
         if (null == suggest) {
             this.pullFromWhichNodeTable.put(mq, new AtomicLong(brokerId));
@@ -177,16 +212,16 @@ public class PullAPIWrapper {
             if (findBrokerResult.isSlave()) {
                 sysFlagInner = PullSysFlag.clearCommitOffsetFlag(sysFlagInner);
             }
-
+            // pullMessageRequest
             PullMessageRequestHeader requestHeader = new PullMessageRequestHeader();
             requestHeader.setConsumerGroup(this.consumerGroup);
             requestHeader.setTopic(mq.getTopic());
-            requestHeader.setQueueId(mq.getQueueId());
+            requestHeader.setQueueId(mq.getQueueId());// queueId
             requestHeader.setQueueOffset(offset);
-            requestHeader.setMaxMsgNums(maxNums);
+            requestHeader.setMaxMsgNums(maxNums);// 最大拉取消息大小
             requestHeader.setSysFlag(sysFlagInner);
             requestHeader.setCommitOffset(commitOffset);
-            requestHeader.setSuspendTimeoutMillis(brokerSuspendMaxTimeMillis);
+            requestHeader.setSuspendTimeoutMillis(brokerSuspendMaxTimeMillis);// 暂停超时时间15000
             requestHeader.setSubscription(subExpression);
             requestHeader.setSubVersion(subVersion);
             requestHeader.setExpressionType(expressionType);

@@ -54,7 +54,7 @@ public class RemoteBrokerOffsetStore implements OffsetStore {
     @Override
     public void load() {
     }
-
+    /// 更新offset
     @Override
     public void updateOffset(MessageQueue mq, long offset, boolean increaseOnly) {
         if (mq != null) {

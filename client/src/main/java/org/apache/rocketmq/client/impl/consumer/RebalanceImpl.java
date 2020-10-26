@@ -217,7 +217,7 @@ public abstract class RebalanceImpl {
             }
         }
     }
-
+    // 进行复杂均衡
     public void doRebalance(final boolean isOrder) {
         Map<String, SubscriptionData> subTable = this.getSubscriptionInner();
         if (subTable != null) {
@@ -329,7 +329,7 @@ public abstract class RebalanceImpl {
             }
         }
     }
-
+    //更新processQueueTable
     private boolean updateProcessQueueTableInRebalance(final String topic, final Set<MessageQueue> mqSet,
         final boolean isOrder) {
         boolean changed = false;
@@ -398,7 +398,7 @@ public abstract class RebalanceImpl {
                 }
             }
         }
-
+        // 派发拉去请求
         this.dispatchPullRequest(pullRequestList);
 
         return changed;

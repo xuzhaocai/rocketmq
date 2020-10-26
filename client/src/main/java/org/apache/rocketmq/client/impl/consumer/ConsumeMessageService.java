@@ -25,17 +25,17 @@ public interface ConsumeMessageService {
     void start();
 
     void shutdown();
-
+    // 更新corePool大小
     void updateCorePoolSize(int corePoolSize);
-
+    // 自增corePool大小
     void incCorePoolSize();
-
+    // 自减corePool大小
     void decCorePoolSize();
-
+    // 获取 corePool大小
     int getCorePoolSize();
 
     ConsumeMessageDirectlyResult consumeMessageDirectly(final MessageExt msg, final String brokerName);
-
+    // 提交消费请求
     void submitConsumeRequest(
         final List<MessageExt> msgs,
         final ProcessQueue processQueue,

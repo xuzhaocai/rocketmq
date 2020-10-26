@@ -28,7 +28,13 @@ public abstract class ServiceThread implements Runnable {
     private static final long JOIN_TIME = 90 * 1000;
 
     private Thread thread;
+
+
+    //  比 CountDownLatch   多一个重置功能， 都差不多，然后有个reset功能
     protected final CountDownLatch2 waitPoint = new CountDownLatch2(1);
+    //protected final CountDownLatch waitPoint1 = new CountDownLatch(1);
+
+    // 是否已经通知
     protected volatile AtomicBoolean hasNotified = new AtomicBoolean(false);
     protected volatile boolean stopped = false;
     protected boolean isDaemon = false;
@@ -123,8 +129,9 @@ public abstract class ServiceThread implements Runnable {
         this.stopped = true;
         log.info("makestop thread " + this.getServiceName());
     }
-
+    // 唤醒
     public void wakeup() {
+        // 已经通知
         if (hasNotified.compareAndSet(false, true)) {
             waitPoint.countDown(); // notify
         }
