@@ -166,15 +166,29 @@ public class MQAdminImpl {
         throw new MQClientException("Unknow why, Can not find Message Queue for this topic, " + topic, null);
     }
 
+    /**
+     * 根据时间戳来找个mq的offset
+     * @param mq  mq
+     * @param timestamp 时间戳
+     * @return
+     * @throws MQClientException
+     */
     public long searchOffset(MessageQueue mq, long timestamp) throws MQClientException {
+
+        // 获取broker
         String brokerAddr = this.mQClientFactory.findBrokerAddressInPublish(mq.getBrokerName());
         if (null == brokerAddr) {
             this.mQClientFactory.updateTopicRouteInfoFromNameServer(mq.getTopic());
             brokerAddr = this.mQClientFactory.findBrokerAddressInPublish(mq.getBrokerName());
         }
 
+
+
+
         if (brokerAddr != null) {
             try {
+
+                // 远程获取
                 return this.mQClientFactory.getMQClientAPIImpl().searchOffset(brokerAddr, mq.getTopic(), mq.getQueueId(), timestamp,
                     timeoutMillis);
             } catch (Exception e) {
@@ -185,15 +199,35 @@ public class MQAdminImpl {
         throw new MQClientException("The broker[" + mq.getBrokerName() + "] not exist", null);
     }
 
+    /**
+     * 获取某个mq的一个最大offset
+     * @param mq
+     * @return
+     * @throws MQClientException
+     */
     public long maxOffset(MessageQueue mq) throws MQClientException {
+
+
+
+        ///获取broker地址
         String brokerAddr = this.mQClientFactory.findBrokerAddressInPublish(mq.getBrokerName());
+
+
+
+        /// broker地址是null的话
         if (null == brokerAddr) {
+            // 从nameserv 更新路由信息
             this.mQClientFactory.updateTopicRouteInfoFromNameServer(mq.getTopic());
+
+            /// 重新获取一遍
             brokerAddr = this.mQClientFactory.findBrokerAddressInPublish(mq.getBrokerName());
         }
 
         if (brokerAddr != null) {
             try {
+
+
+                // 远程调用获取
                 return this.mQClientFactory.getMQClientAPIImpl().getMaxOffset(brokerAddr, mq.getTopic(), mq.getQueueId(), timeoutMillis);
             } catch (Exception e) {
                 throw new MQClientException("Invoke Broker[" + brokerAddr + "] exception", e);

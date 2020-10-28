@@ -226,7 +226,7 @@ public class ConsumeMessageConcurrentlyService implements ConsumeMessageService 
         final boolean dispatchToConsume) {
 
 
-        /// 批量消费规模
+        /// 批量消费规模  默认是1个
         final int consumeBatchSize = this.defaultMQPushConsumer.getConsumeMessageBatchMaxSize();
         if (msgs.size() <= consumeBatchSize) {//消息正好在批量消费范围内
 
@@ -254,6 +254,8 @@ public class ConsumeMessageConcurrentlyService implements ConsumeMessageService 
 
                 ConsumeRequest consumeRequest = new ConsumeRequest(msgThis, processQueue, messageQueue);
                 try {
+
+                    /// 提交到线程池处理
                     this.consumeExecutor.submit(consumeRequest);
                 } catch (RejectedExecutionException e) {
 
@@ -324,7 +326,7 @@ public class ConsumeMessageConcurrentlyService implements ConsumeMessageService 
                 }
 
 
-
+                // 成功的
                 int ok = ackIndex + 1;
 
 
@@ -358,7 +360,7 @@ public class ConsumeMessageConcurrentlyService implements ConsumeMessageService 
                 break;
             case CLUSTERING:// 集群
                 List<MessageExt> msgBackFailed = new ArrayList<MessageExt>(consumeRequest.getMsgs().size());
-
+                ///   TODO
                 for (int i = ackIndex + 1; i < consumeRequest.getMsgs().size(); i++) {
                     MessageExt msg = consumeRequest.getMsgs().get(i);
                     boolean result = this.sendMessageBack(msg, context);
@@ -370,16 +372,19 @@ public class ConsumeMessageConcurrentlyService implements ConsumeMessageService 
                 /// TODO  有消费失败的
                 if (!msgBackFailed.isEmpty()) {
                     consumeRequest.getMsgs().removeAll(msgBackFailed);
-
+                    //// 需要将这些失败的
                     this.submitConsumeRequestLater(msgBackFailed, consumeRequest.getProcessQueue(), consumeRequest.getMessageQueue());
                 }
                 break;
             default:
                 break;
         }
-        // 最大的一个offset
+        // 这个offset 其实就是消费到哪的一个offset  ，然后如果这个treeMap里面还有数据的话， 就返回那个最小的offset  ，如果这个treeMap 空了的话，就是offsetMax+1
         long offset = consumeRequest.getProcessQueue().removeMessage(consumeRequest.getMsgs());
         if (offset >= 0 && !consumeRequest.getProcessQueue().isDropped()) {
+
+
+            /// 更新一下这个offset
             this.defaultMQPushConsumerImpl.getOffsetStore().updateOffset(consumeRequest.getMessageQueue(), offset, true);
         }
     }

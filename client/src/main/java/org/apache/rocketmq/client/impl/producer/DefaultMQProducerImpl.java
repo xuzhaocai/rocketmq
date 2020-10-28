@@ -522,6 +522,8 @@ public class DefaultMQProducerImpl implements MQProducerInner {
         final SendCallback sendCallback,// 发送回调
         final long timeout// 超时时间
     ) throws MQClientException, RemotingException, MQBrokerException, InterruptedException {
+
+
         this.makeSureStateOK();//判断状态是否是running
         Validators.checkMessage(msg, this.defaultMQProducer);// 检查消息合法性
         // 生成一个随机的invokeID
@@ -539,11 +541,9 @@ public class DefaultMQProducerImpl implements MQProducerInner {
             int timesTotal = communicationMode == CommunicationMode.SYNC ? 1 + this.defaultMQProducer.getRetryTimesWhenSendFailed() : 1;// 重试次数
             int times = 0;
             String[] brokersSent = new String[timesTotal];// 存放发送过的broker name
-
             // 重试发送
             for (; times < timesTotal; times++) {
                 String lastBrokerName = null == mq ? null : mq.getBrokerName();
-
                 // 选择message queue
                 MessageQueue mqSelected = this.selectOneMessageQueue(topicPublishInfo, lastBrokerName);// 选择一个消息队列
                 if (mqSelected != null) {
@@ -559,6 +559,7 @@ public class DefaultMQProducerImpl implements MQProducerInner {
                         // 进行发送
                         sendResult = this.sendKernelImpl(msg, mq, communicationMode, sendCallback, topicPublishInfo, timeout - costTime);
                         endTimestamp = System.currentTimeMillis();
+
                         this.updateFaultItem(mq.getBrokerName(), endTimestamp - beginTimestampPrev, false);
                         switch (communicationMode) {
                             case ASYNC:
@@ -608,7 +609,6 @@ public class DefaultMQProducerImpl implements MQProducerInner {
                                 if (sendResult != null) {
                                     return sendResult;
                                 }
-
                                 throw e;
                         }
                     } catch (InterruptedException e) {
@@ -625,7 +625,6 @@ public class DefaultMQProducerImpl implements MQProducerInner {
                     break;
                 }
             }
-
             if (sendResult != null) {// 结果不是null 就返回
                 return sendResult;
             }
@@ -689,13 +688,15 @@ public class DefaultMQProducerImpl implements MQProducerInner {
                                       final SendCallback sendCallback,
                                       final TopicPublishInfo topicPublishInfo,
                                       final long timeout) throws MQClientException, RemotingException, MQBrokerException, InterruptedException {
+
+
+
         long beginStartTime = System.currentTimeMillis();
         String brokerAddr = this.mQClientFactory.findBrokerAddressInPublish(mq.getBrokerName());// 获取broker的 地址
         if (null == brokerAddr) {
             tryToFindTopicPublishInfo(mq.getTopic());
             brokerAddr = this.mQClientFactory.findBrokerAddressInPublish(mq.getBrokerName());
         }
-
         SendMessageContext context = null;
         if (brokerAddr != null) {
             brokerAddr = MixAll.brokerVIPChannel(this.defaultMQProducer.isSendMessageWithVIPChannel(), brokerAddr);
@@ -728,6 +729,8 @@ public class DefaultMQProducerImpl implements MQProducerInner {
                     checkForbiddenContext.setMessage(msg);
                     checkForbiddenContext.setMq(mq);
                     checkForbiddenContext.setUnitMode(this.isUnitMode());
+
+                    // 执行forbidden 钩子
                     this.executeCheckForbiddenHook(checkForbiddenContext);
                 }
 

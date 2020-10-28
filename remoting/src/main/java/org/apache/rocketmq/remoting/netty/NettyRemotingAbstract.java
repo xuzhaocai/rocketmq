@@ -459,12 +459,9 @@ public abstract class NettyRemotingAbstract {
     public RemotingCommand invokeSyncImpl(final Channel channel, final RemotingCommand request,
         final long timeoutMillis)
         throws InterruptedException, RemotingSendRequestException, RemotingTimeoutException {
-
         // 获取请求  id
         final int opaque = request.getOpaque();
-
         try {
-
             // 创建 ResponseFuture
             final ResponseFuture responseFuture = new ResponseFuture(channel, opaque, timeoutMillis, null, null);
             // 放入 response 表中

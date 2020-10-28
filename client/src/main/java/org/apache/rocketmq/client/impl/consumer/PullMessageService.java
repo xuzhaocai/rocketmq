@@ -29,6 +29,9 @@ import org.apache.rocketmq.common.utils.ThreadUtils;
 /// 拉取消息服务
 public class PullMessageService extends ServiceThread {
     private final InternalLogger log = ClientLogger.getLog();
+
+
+    //这个就是放拉取请求的
     private final LinkedBlockingQueue<PullRequest> pullRequestQueue = new LinkedBlockingQueue<PullRequest>();
     private final MQClientInstance mQClientFactory;
     private final ScheduledExecutorService scheduledExecutorService = Executors
@@ -78,7 +81,7 @@ public class PullMessageService extends ServiceThread {
     // 拉取消息
     private void pullMessage(final PullRequest pullRequest) {
 
-        // 根据groupId 获取consumer
+        // 根据groupId 获取consumer实现impl
         final MQConsumerInner consumer = this.mQClientFactory.selectConsumer(pullRequest.getConsumerGroup());
         if (consumer != null) {
             DefaultMQPushConsumerImpl impl = (DefaultMQPushConsumerImpl) consumer;
@@ -98,8 +101,10 @@ public class PullMessageService extends ServiceThread {
         while (!this.isStopped()) {// 没有停止的话
             try {
 
-                // 获取拉取请求队列
+                // 获取拉取请求队列 ，没有的话就是一直堵塞着
                 PullRequest pullRequest = this.pullRequestQueue.take();
+
+                // 进行拉取消息
                 this.pullMessage(pullRequest);
             } catch (InterruptedException ignored) {
             } catch (Exception e) {

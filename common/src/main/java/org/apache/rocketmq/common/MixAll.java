@@ -120,9 +120,17 @@ public class MixAll {
         return DLQ_GROUP_TOPIC_PREFIX + consumerGroup;
     }
 
+    /**
+     * vip通道地址转换
+     * @param isChange  是否转换
+     * @param brokerAddr  broker地址
+     * @return
+     */
     public static String brokerVIPChannel(final boolean isChange, final String brokerAddr) {
         if (isChange) {
             String[] ipAndPort = brokerAddr.split(":");
+
+            ///vip通道的 端口是 broker 端口-2
             String brokerAddrNew = ipAndPort[0] + ":" + (Integer.parseInt(ipAndPort[1]) - 2);
             return brokerAddrNew;
         } else {

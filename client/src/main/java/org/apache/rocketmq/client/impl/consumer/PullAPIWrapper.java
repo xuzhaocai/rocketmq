@@ -173,7 +173,7 @@ public class PullAPIWrapper {
             }
         }
     }
-
+    ///   拉取消息
     public PullResult pullKernelImpl(
         final MessageQueue mq,
         final String subExpression,
@@ -188,15 +188,30 @@ public class PullAPIWrapper {
         final CommunicationMode communicationMode,
         final PullCallback pullCallback
     ) throws MQClientException, RemotingException, MQBrokerException, InterruptedException {
+
+
+
+
+        // 获取broker 地址 ，这里有指定的 broker id
         FindBrokerResult findBrokerResult =
             this.mQClientFactory.findBrokerAddressInSubscribe(mq.getBrokerName(),
-                this.recalculatePullFromWhichNode(mq), false);
+                this.recalculatePullFromWhichNode(mq),
+                    false);
+
+
+
+
+        // 没有找到broker的话，从nameserv 上面更新，然后再重新获取下
         if (null == findBrokerResult) {
             this.mQClientFactory.updateTopicRouteInfoFromNameServer(mq.getTopic());
             findBrokerResult =
                 this.mQClientFactory.findBrokerAddressInSubscribe(mq.getBrokerName(),
                     this.recalculatePullFromWhichNode(mq), false);
         }
+
+
+
+
 
         if (findBrokerResult != null) {
             {
@@ -208,10 +223,14 @@ public class PullAPIWrapper {
                 }
             }
             int sysFlagInner = sysFlag;
-
+            //这里如果是从slave上面拉取消息的话
             if (findBrokerResult.isSlave()) {
+
+                // 需要在sys flag 里面清除 commit offset的选项
                 sysFlagInner = PullSysFlag.clearCommitOffsetFlag(sysFlagInner);
             }
+
+
             // pullMessageRequest
             PullMessageRequestHeader requestHeader = new PullMessageRequestHeader();
             requestHeader.setConsumerGroup(this.consumerGroup);
@@ -243,12 +262,15 @@ public class PullAPIWrapper {
 
         throw new MQClientException("The broker[" + mq.getBrokerName() + "] not exist", null);
     }
-
+    // 重新计算从哪个broker 节点上拉取消息
     public long recalculatePullFromWhichNode(final MessageQueue mq) {
+
+
+
         if (this.isConnectBrokerByUser()) {
             return this.defaultBrokerId;
         }
-
+        // 缓存了一个  ，缓存的是上次拉消息回来，然后broker 告诉consumer 你下次 从哪里拉消息
         AtomicLong suggest = this.pullFromWhichNodeTable.get(mq);
         if (suggest != null) {
             return suggest.get();

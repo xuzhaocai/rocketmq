@@ -25,6 +25,7 @@ import org.apache.rocketmq.remoting.RPCHook;
 import org.apache.rocketmq.remoting.common.RemotingHelper;
 import org.apache.rocketmq.remoting.protocol.RemotingCommand;
 
+import java.io.UnsupportedEncodingException;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.locks.LockSupport;
 
@@ -37,32 +38,18 @@ public class Producer {
         DefaultMQProducer producer = new DefaultMQProducer("please_rename_unique_group_name");
         // 设置nameserv地址
         producer.setNamesrvAddr("127.0.0.1:9876");
-
         // 启动producer
         producer.start();
-
-        long start= System.currentTimeMillis();
-
-        int count =0;
-        while(true) {
-            try {
-                // 创建消息
-                Message msg = new Message("TestBroker" /* Topic */,
-                    "TagA" /* Tag */,
-                    ("Hello RocketMQ " + count++).getBytes(RemotingHelper.DEFAULT_CHARSET) /* Message body */
-                );
-                // 发送消息
-                SendResult sendResult = producer.send(msg);
-                System.out.printf("%s%n", sendResult);
-            } catch (Exception e) {
-                e.printStackTrace();
-                Thread.sleep(1000);
-            }
-            if (++count==3)// 5093
-                break;
+        // 创建消息
+        Message msg = null;
+        try {
+            msg = new Message("TestBroker" /* Topic */,
+                "TagA" /* Tag */,
+                "Hello RocketMQ".getBytes(RemotingHelper.DEFAULT_CHARSET) /* Message body */
+            );
+            producer.sendOneway(msg);
+        } catch (Exception e) {
+            e.printStackTrace();
         }
-        long rsp = System.currentTimeMillis()-start;
-        System.out.printf("耗时："+rsp);
-
     }
 }

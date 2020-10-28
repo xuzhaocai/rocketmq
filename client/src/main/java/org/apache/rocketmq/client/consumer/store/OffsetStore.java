@@ -34,12 +34,16 @@ public interface OffsetStore {
 
     /**
      * Update the offset,store it in memory
+     *
+     * 更新offset
      */
     void updateOffset(final MessageQueue mq, final long offset, final boolean increaseOnly);
 
     /**
      * Get offset from local storage
      *
+     *
+     * 读取offset
      * @return The fetched offset
      */
     long readOffset(final MessageQueue mq, final ReadOffsetType type);

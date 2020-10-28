@@ -41,27 +41,33 @@ public class ProcessQueue {
     public final static long REBALANCE_LOCK_MAX_LIVE_TIME =
         Long.parseLong(System.getProperty("rocketmq.client.rebalance.lockMaxLiveTime", "30000"));
     public final static long REBALANCE_LOCK_INTERVAL = Long.parseLong(System.getProperty("rocketmq.client.rebalance.lockInterval", "20000"));
+
+
     private final static long PULL_MAX_IDLE_TIME = Long.parseLong(System.getProperty("rocketmq.client.pull.pullMaxIdleTime", "120000"));
     private final InternalLogger log = ClientLogger.getLog();
     private final ReadWriteLock lockTreeMap = new ReentrantReadWriteLock();
 
 
-    // treeMap
+    // treeMap  放消息的
     private final TreeMap<Long, MessageExt> msgTreeMap = new TreeMap<Long, MessageExt>();
+
+
+    // 消息 条数
     private final AtomicLong msgCount = new AtomicLong();
+    // 消息 大小
     private final AtomicLong msgSize = new AtomicLong();
     private final Lock lockConsume = new ReentrantLock();
     /**
      * A subset of msgTreeMap, will only be used when orderly consume
      */
     private final TreeMap<Long, MessageExt> consumingMsgOrderlyTreeMap = new TreeMap<Long, MessageExt>();
-    private final AtomicLong tryUnlockTimes = new AtomicLong(0);
+    private final AtomicLong tryUnlockTimes = new AtomicLong(0);/// 试图解锁的次数
     private volatile long queueOffsetMax = 0L;
     private volatile boolean dropped = false;
     private volatile long lastPullTimestamp = System.currentTimeMillis();
     private volatile long lastConsumeTimestamp = System.currentTimeMillis();
-    private volatile boolean locked = false;
-    private volatile long lastLockTimestamp = System.currentTimeMillis();
+    private volatile boolean locked = false;/// 这个锁是向 broker 申请的
+    private volatile long lastLockTimestamp = System.currentTimeMillis();// 最后锁定时间
     private volatile boolean consuming = false;
     private volatile long msgAccCnt = 0;
 
@@ -143,8 +149,6 @@ public class ProcessQueue {
 
     public boolean putMessage(final List<MessageExt> msgs) {
 
-
-
         boolean dispatchToConsume = false;
         try {
 
@@ -213,11 +217,17 @@ public class ProcessQueue {
         return dispatchToConsume;
     }
 
+    /**
+     * 获取最大跨度
+     * @return
+     */
     public long getMaxSpan() {
         try {
             this.lockTreeMap.readLock().lockInterruptibly();
             try {
                 if (!this.msgTreeMap.isEmpty()) {
+
+                    // 最后一个key - 最前面的那个key
                     return this.msgTreeMap.lastKey() - this.msgTreeMap.firstKey();
                 }
             } finally {
@@ -231,7 +241,7 @@ public class ProcessQueue {
     }
 
     /**
-     * 移除掉这些 msgs
+     * 移除掉这些 msgs， 一般是消费完成了，然后。。。。。。将msg 这些消息 从treeMap中移除掉
      * @param msgs
      * @return
      */
@@ -247,15 +257,19 @@ public class ProcessQueue {
                     int removedCnt = 0;
                     //循环移除
                     for (MessageExt msg : msgs) {
+
+                        // 移除掉
                         MessageExt prev = msgTreeMap.remove(msg.getQueueOffset());
                         if (prev != null) {
                             removedCnt--;
+
                             msgSize.addAndGet(0 - msg.getBody().length);
                         }
                     }
                     msgCount.addAndGet(removedCnt);
                     // 不是空
                     if (!msgTreeMap.isEmpty()) {
+                        // 获取第一个key
                         result = msgTreeMap.firstKey();
                     }
                 }
