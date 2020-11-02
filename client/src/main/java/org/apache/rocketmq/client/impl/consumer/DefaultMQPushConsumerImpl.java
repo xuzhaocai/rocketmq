@@ -213,6 +213,8 @@ public class DefaultMQPushConsumerImpl implements MQConsumerInner {
             this.makeSureStateOK();
         } catch (MQClientException e) {
             log.warn("pullMessage exception, consumer state not ok", e);
+
+            // 稍后再执行这个Pull Request
             this.executePullRequestLater(pullRequest, PULL_TIME_DELAY_MILLS_WHEN_EXCEPTION);///TODO 这个稍后再看
             return;
         }
@@ -224,7 +226,7 @@ public class DefaultMQPushConsumerImpl implements MQConsumerInner {
         }
 
 
-        ///限流
+        ///限流的一些判断
         long cachedMessageCount = processQueue.getMsgCount().get();
         long cachedMessageSizeInMiB = processQueue.getMsgSize().get() / (1024 * 1024);
 
@@ -253,8 +255,6 @@ public class DefaultMQPushConsumerImpl implements MQConsumerInner {
         }
 
         if (!this.consumeOrderly) {/// 不是顺序消费
-
-
 
             /// 检查最大跨度
             if (processQueue.getMaxSpan() > this.defaultMQPushConsumer.getConsumeConcurrentlyMaxSpan()) {
@@ -459,7 +459,7 @@ public class DefaultMQPushConsumerImpl implements MQConsumerInner {
         String subExpression = null;
         boolean classFilter = false;
 
-        //// TODO  这块不知道什么鬼------
+        //// TODO  这块不知道什么鬼------  好像就是找这个filter
         SubscriptionData sd = this.rebalanceImpl.getSubscriptionInner().get(pullRequest.getMessageQueue().getTopic());
         if (sd != null) {
             if (this.defaultMQPushConsumer.isPostSubscriptionWhenPull() && !sd.isClassFilterMode()) {
@@ -477,6 +477,8 @@ public class DefaultMQPushConsumerImpl implements MQConsumerInner {
             subExpression != null, // subscription
             classFilter // class filter
         );
+
+        //////////TODO                    进行拉取消息
         try {////////////////--------------拉取消息----------------//////////////////
             this.pullAPIWrapper.pullKernelImpl(
                 pullRequest.getMessageQueue(),
@@ -489,7 +491,7 @@ public class DefaultMQPushConsumerImpl implements MQConsumerInner {
                 commitOffsetValue,
                 BROKER_SUSPEND_MAX_TIME_MILLIS,
                 CONSUMER_TIMEOUT_MILLIS_WHEN_SUSPEND,
-                CommunicationMode.ASYNC,// 异步拉取
+                CommunicationMode.ASYNC,// 异步拉取 TODO 重要
                 pullCallback
             );
         } catch (Exception e) {
@@ -624,6 +626,9 @@ public class DefaultMQPushConsumerImpl implements MQConsumerInner {
                 this.copySubscription();
                 // 如果 消息模式是 cluster 的话 ，如果instanceId是默认的话，就设置成pid
                 if (this.defaultMQPushConsumer.getMessageModel() == MessageModel.CLUSTERING) {
+
+
+                    // 重新设置一个下 实例名字 如果是默认的话，就变成pid
                     this.defaultMQPushConsumer.changeInstanceNameToPID();
                 }
                 // 创建instance

@@ -598,7 +598,6 @@ public class NettyRemotingClient extends NettyRemotingAbstract implements Remoti
                 }
                 // 进行调用
                 this.invokeAsyncImpl(channel, request, timeoutMillis - costTime, invokeCallback);
-
             } catch (RemotingSendRequestException e) {
                 log.warn("invokeAsync: send request exception, so close the channel[{}]", addr);
                 this.closeChannel(addr, channel);

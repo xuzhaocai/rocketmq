@@ -38,6 +38,7 @@ public class Producer {
         DefaultMQProducer producer = new DefaultMQProducer("please_rename_unique_group_name");
         // 设置nameserv地址
         producer.setNamesrvAddr("127.0.0.1:9876");
+
         // 启动producer
         producer.start();
         // 创建消息
@@ -47,7 +48,16 @@ public class Producer {
                 "TagA" /* Tag */,
                 "Hello RocketMQ".getBytes(RemotingHelper.DEFAULT_CHARSET) /* Message body */
             );
-            producer.sendOneway(msg);
+            producer.send(msg, new SendCallback() {
+                @Override
+                public void onSuccess(SendResult sendResult) {
+                    System.out.println(sendResult);
+                }
+                @Override
+                public void onException(Throwable e) {
+                    e.printStackTrace();
+                }
+            });
         } catch (Exception e) {
             e.printStackTrace();
         }

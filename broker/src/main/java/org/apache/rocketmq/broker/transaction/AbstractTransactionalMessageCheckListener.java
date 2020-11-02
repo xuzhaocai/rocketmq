@@ -53,6 +53,9 @@ public abstract class AbstractTransactionalMessageCheckListener {
     }
 
     public void sendCheckMessage(MessageExt msgExt) throws Exception {
+
+
+        /// 封装检查事务的请求头
         CheckTransactionStateRequestHeader checkTransactionStateRequestHeader = new CheckTransactionStateRequestHeader();
         checkTransactionStateRequestHeader.setCommitLogOffset(msgExt.getCommitLogOffset());
         checkTransactionStateRequestHeader.setOffsetMsgId(msgExt.getMsgId());
@@ -63,8 +66,12 @@ public abstract class AbstractTransactionalMessageCheckListener {
         msgExt.setQueueId(Integer.parseInt(msgExt.getUserProperty(MessageConst.PROPERTY_REAL_QUEUE_ID)));
         msgExt.setStoreSize(0);
         String groupId = msgExt.getProperty(MessageConst.PROPERTY_PRODUCER_GROUP);
+
+        // 使用groupid 获取channel
         Channel channel = brokerController.getProducerManager().getAvaliableChannel(groupId);
         if (channel != null) {
+
+
             brokerController.getBroker2Client().checkProducerTransactionState(groupId, channel, checkTransactionStateRequestHeader, msgExt);
         } else {
             LOGGER.warn("Check transaction failed, channel is null. groupId={}", groupId);
@@ -75,7 +82,7 @@ public abstract class AbstractTransactionalMessageCheckListener {
         executorService.execute(new Runnable() {
             @Override
             public void run() {
-                try {
+                try {//发送检查消息
                     sendCheckMessage(msgExt);
                 } catch (Exception e) {
                     LOGGER.error("Send check message error!", e);

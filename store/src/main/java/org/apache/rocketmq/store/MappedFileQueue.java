@@ -299,6 +299,10 @@ public class MappedFileQueue {
         return -1;
     }
 
+    /**
+     * 获取最大offset
+     * @return
+     */
     public long getMaxOffset() {
         MappedFile mappedFile = getLastMappedFile();
         if (mappedFile != null) {
@@ -453,6 +457,7 @@ public class MappedFileQueue {
     }
 
     /**
+     * TODO 根据 offset 获取对应 MappedFile
      * Finds a mapped file by offset.
      *  根据offset 查找对应在哪个mappedFile中
      * @param offset Offset.
@@ -464,6 +469,8 @@ public class MappedFileQueue {
             MappedFile firstMappedFile = this.getFirstMappedFile();
             MappedFile lastMappedFile = this.getLastMappedFile();
             if (firstMappedFile != null && lastMappedFile != null) {
+                //如果 你这个offset  小于 第一个MappedFile 开始offset 或者是大于 最后一个MappedFile 开始offset+ MappedFile文件大小
+                // 说明你这个offset 是不合法的
                 if (offset < firstMappedFile.getFileFromOffset() || offset >= lastMappedFile.getFileFromOffset() + this.mappedFileSize) {
                     LOG_ERROR.warn("Offset not matched. Request offset: {}, firstOffset: {}, lastOffset: {}, mappedFileSize: {}, mappedFiles count: {}",
                         offset,
@@ -471,7 +478,8 @@ public class MappedFileQueue {
                         lastMappedFile.getFileFromOffset() + this.mappedFileSize,
                         this.mappedFileSize,
                         this.mappedFiles.size());
-                } else {// 获得mappedFile的一个角标  50000/10000             0/10000
+                } else {
+                    // 获得mappedFile的一个角标  50000/10000             0/10000
                     int index = (int) ((offset / this.mappedFileSize) - (firstMappedFile.getFileFromOffset() / this.mappedFileSize));
                     MappedFile targetFile = null;
                     try {// 从mapped集合中获取对应角标的 mappedFile
@@ -502,10 +510,10 @@ public class MappedFileQueue {
 
         return null;
     }
-    // 获取第一个offset
+    // 获取第一个MappedFile
     public MappedFile getFirstMappedFile() {
         MappedFile mappedFileFirst = null;
-
+        // 如果这个集合不是空的话，就获取第一个MappedFile
         if (!this.mappedFiles.isEmpty()) {
             try {
                 mappedFileFirst = this.mappedFiles.get(0);

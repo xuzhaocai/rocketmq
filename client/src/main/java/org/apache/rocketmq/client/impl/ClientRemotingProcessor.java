@@ -54,7 +54,7 @@ public class ClientRemotingProcessor implements NettyRequestProcessor {
     public ClientRemotingProcessor(final MQClientInstance mqClientFactory) {
         this.mqClientFactory = mqClientFactory;
     }
-
+    /// 处理请求
     @Override
     public RemotingCommand processRequest(ChannelHandlerContext ctx,
         RemotingCommand request) throws RemotingCommandException {
@@ -84,6 +84,13 @@ public class ClientRemotingProcessor implements NettyRequestProcessor {
         return false;
     }
 
+    /**
+     * 检查事务状态
+     * @param ctx
+     * @param request
+     * @return
+     * @throws RemotingCommandException
+     */
     public RemotingCommand checkTransactionState(ChannelHandlerContext ctx,
         RemotingCommand request) throws RemotingCommandException {
         final CheckTransactionStateRequestHeader requestHeader =
@@ -91,15 +98,21 @@ public class ClientRemotingProcessor implements NettyRequestProcessor {
         final ByteBuffer byteBuffer = ByteBuffer.wrap(request.getBody());
         final MessageExt messageExt = MessageDecoder.decode(byteBuffer);
         if (messageExt != null) {
+
+            // UNIQ_KEY  事务id
             String transactionId = messageExt.getProperty(MessageConst.PROPERTY_UNIQ_CLIENT_MESSAGE_ID_KEYIDX);
             if (null != transactionId && !"".equals(transactionId)) {
                 messageExt.setTransactionId(transactionId);
             }
+            // group组
             final String group = messageExt.getProperty(MessageConst.PROPERTY_PRODUCER_GROUP);
             if (group != null) {
+                //选择一个group对应的producer
                 MQProducerInner producer = this.mqClientFactory.selectProducer(group);
                 if (producer != null) {
+                    ///解析远程地址
                     final String addr = RemotingHelper.parseChannelRemoteAddr(ctx.channel());
+                    // 检查事务状态
                     producer.checkTransactionState(addr, messageExt, requestHeader);
                 } else {
                     log.debug("checkTransactionState, pick producer by group[{}] failed", group);

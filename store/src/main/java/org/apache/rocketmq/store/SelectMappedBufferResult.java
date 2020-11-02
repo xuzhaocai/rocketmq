@@ -20,13 +20,13 @@ import java.nio.ByteBuffer;
 
 public class SelectMappedBufferResult {
 
-    private final long startOffset;
+    private final long startOffset;// 开始offset
 
-    private final ByteBuffer byteBuffer;
+    private final ByteBuffer byteBuffer;/// buffer
 
-    private int size;
+    private int size;// 大小
 
-    private MappedFile mappedFile;
+    private MappedFile mappedFile;// 对应的MappedFile
 
     public SelectMappedBufferResult(long startOffset, ByteBuffer byteBuffer, int size, MappedFile mappedFile) {
         this.startOffset = startOffset;

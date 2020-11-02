@@ -24,7 +24,12 @@ import org.apache.rocketmq.client.impl.factory.MQClientInstance;
 import org.apache.rocketmq.client.log.ClientLogger;
 import org.apache.rocketmq.logging.InternalLogger;
 import org.apache.rocketmq.remoting.RPCHook;
-// mq client 实例管理类
+/**
+ * mq client 实例管理类
+ *
+ * 单例类，管理MQClientInstance
+ */
+
 public class MQClientManager {
     private final static InternalLogger log = ClientLogger.getLog();
     private static MQClientManager instance = new MQClientManager();// 单例子
@@ -45,6 +50,14 @@ public class MQClientManager {
     }
     // 创建并且获取mq 客户端实例
     public MQClientInstance getAndCreateMQClientInstance(final ClientConfig clientConfig, RPCHook rpcHook) {
+
+        /**
+         *
+         * 如果这个没有这个 unit的话
+         * 就是clientId 就是这个样子  ip@实例名字 （这个实例名字如果不设置的话， 又成了进程id）
+         */
+        // 根据这个clientId 来去确定几个MQClientInstance 对象，
+        // 这种中请求可能就会出现那种一个MQClientInstance对象对应这个多个的producer consumer 这些东西
         String clientId = clientConfig.buildMQClientId();//  获取客户端id
         MQClientInstance instance = this.factoryTable.get(clientId);// 从缓存中获取
         if (null == instance) {// 如果没有，创建一个mq客户端实例。然后放到缓存中

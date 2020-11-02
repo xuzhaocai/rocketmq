@@ -27,7 +27,7 @@ public class TopicPublishInfo {
     private boolean orderTopic = false;
     private boolean haveTopicRouterInfo = false;// 是否有 topicRouter信息
     private List<MessageQueue> messageQueueList = new ArrayList<MessageQueue>();// message queue集合
-    private volatile ThreadLocalIndex sendWhichQueue = new ThreadLocalIndex();
+    private volatile ThreadLocalIndex sendWhichQueue = new ThreadLocalIndex();// 这个用户select MessageQueue的时候用到
     private TopicRouteData topicRouteData;
 
     public boolean isOrderTopic() {

@@ -363,9 +363,7 @@ public class MQClientAPIImpl {
         } else {
             request = RemotingCommand.createRequestCommand(RequestCode.SEND_MESSAGE, requestHeader);
         }
-
         request.setBody(msg.getBody());
-
         switch (communicationMode) {
             case ONEWAY: // 单向发送
                 this.remotingClient.invokeOneway(addr, request, timeoutMillis);
@@ -453,18 +451,14 @@ public class MQClientAPIImpl {
         final SendMessageContext context,
         final DefaultMQProducerImpl producer
     ) throws InterruptedException, RemotingException {
-
         this.remotingClient.invokeAsync(addr, request, timeoutMillis,
-
              // 回调
             new InvokeCallback() {
                 @Override
                 public void operationComplete(ResponseFuture responseFuture) {
-
                     RemotingCommand response = responseFuture.getResponseCommand();
                     // 如果 response不是null && 没有 sendCallback
                     if (null == sendCallback && response != null) {
-
                         try {
                             SendResult sendResult = MQClientAPIImpl.this.processSendResponse(brokerName, msg, response);
                             if (context != null && sendResult != null) {
@@ -477,7 +471,6 @@ public class MQClientAPIImpl {
                         producer.updateFaultItem(brokerName, System.currentTimeMillis() - responseFuture.getBeginTimestamp(), false);
                         return;
                     }
-
                     if (response != null) {
                         try {
                             // 生成发送结果
@@ -487,7 +480,6 @@ public class MQClientAPIImpl {
                                 context.setSendResult(sendResult);
                                 context.getProducer().executeSendMessageHookAfter(context);
                             }
-
                             try {
                                 // 调用回调的成功函数
                                 sendCallback.onSuccess(sendResult);
@@ -496,7 +488,6 @@ public class MQClientAPIImpl {
                             // 更新容错信息
                             producer.updateFaultItem(brokerName, System.currentTimeMillis() - responseFuture.getBeginTimestamp(), false);
                         } catch (Exception e) {
-
                             // 发送异常， 这个更新容错信息，直接就是隔离了这个broker
                             producer.updateFaultItem(brokerName, System.currentTimeMillis() - responseFuture.getBeginTimestamp(), true);
 
@@ -508,8 +499,6 @@ public class MQClientAPIImpl {
                         //  更新容错信息，直接就是隔离了这个broker
                         producer.updateFaultItem(brokerName, System.currentTimeMillis() - responseFuture.getBeginTimestamp(), true);
                         if (!responseFuture.isSendRequestOK()) {// 不是发送成功
-
-
                             MQClientException ex = new MQClientException("send request failed", responseFuture.getCause());
                             onExceptionImpl(brokerName, msg, 0L, request, sendCallback, topicPublishInfo, instance,
                                 retryTimesWhenSendFailed, times, ex, context, true, producer);
@@ -706,17 +695,17 @@ public class MQClientAPIImpl {
 
 
 
-
+        // 封装拉取 消息的code ：PULL_MESSAGE
         RemotingCommand request = RemotingCommand.createRequestCommand(RequestCode.PULL_MESSAGE, requestHeader);
 
         switch (communicationMode) {
             case ONEWAY:
                 assert false;
                 return null;
-            case ASYNC:
+            case ASYNC:// 异步拉取
                 this.pullMessageAsync(addr, request, timeoutMillis, pullCallback);
                 return null;
-            case SYNC:
+            case SYNC:// 同步拉取
                 return this.pullMessageSync(addr, request, timeoutMillis);
             default:
                 assert false;
@@ -725,6 +714,16 @@ public class MQClientAPIImpl {
 
         return null;
     }
+
+    /**
+     * 异步拉取消息
+     * @param addr  broker地址
+     * @param request  请求command
+     * @param timeoutMillis  超时时间
+     * @param pullCallback   回调
+     * @throws RemotingException
+     * @throws InterruptedException
+     */
     // 异步拉取消息
     private void pullMessageAsync(
         final String addr,
@@ -1192,6 +1191,8 @@ public class MQClientAPIImpl {
         final String remark,
         final long timeoutMillis
     ) throws RemotingException, MQBrokerException, InterruptedException {
+
+        /// 发送结束事务的请求   END_TRANSACTION
         RemotingCommand request = RemotingCommand.createRequestCommand(RequestCode.END_TRANSACTION, requestHeader);
 
         request.setRemark(remark);

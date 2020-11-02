@@ -107,7 +107,6 @@ public class LatencyFaultToleranceImpl implements LatencyFaultTolerance<String> 
                 return tmpList.get(i).getName();
             }
         }
-
         return null;
     }
 

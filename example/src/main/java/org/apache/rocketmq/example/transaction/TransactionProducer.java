@@ -32,8 +32,12 @@ import java.util.concurrent.TimeUnit;
 
 public class TransactionProducer {
     public static void main(String[] args) throws MQClientException, InterruptedException {
+
+        // 事务listener
         TransactionListener transactionListener = new TransactionListenerImpl();
+        // 创建事务MQ生产者
         TransactionMQProducer producer = new TransactionMQProducer("please_rename_unique_group_name");
+        // 检查事务的线程池
         ExecutorService executorService = new ThreadPoolExecutor(2, 5, 100, TimeUnit.SECONDS, new ArrayBlockingQueue<Runnable>(2000), new ThreadFactory() {
             @Override
             public Thread newThread(Runnable r) {
@@ -43,28 +47,26 @@ public class TransactionProducer {
             }
         });
 
+        producer.setNamesrvAddr("127.0.0.1:9876");
+        // 设置检查事务线程池
         producer.setExecutorService(executorService);
+        // 设置事务listener
         producer.setTransactionListener(transactionListener);
         producer.start();
+        try {
+            /// 创建消息
+            Message msg =
+                new Message("TopicTest1234", "tag", "key",
+                    ("Hello RocketMQ ").getBytes(RemotingHelper.DEFAULT_CHARSET));
+            // 发送事务消息
+            SendResult sendResult = producer.sendMessageInTransaction(msg, null);
+            System.out.printf("%s%n", sendResult);
 
-        String[] tags = new String[] {"TagA", "TagB", "TagC", "TagD", "TagE"};
-        for (int i = 0; i < 10; i++) {
-            try {
-                Message msg =
-                    new Message("TopicTest1234", tags[i % tags.length], "KEY" + i,
-                        ("Hello RocketMQ " + i).getBytes(RemotingHelper.DEFAULT_CHARSET));
-                SendResult sendResult = producer.sendMessageInTransaction(msg, null);
-                System.out.printf("%s%n", sendResult);
-
-                Thread.sleep(10);
-            } catch (MQClientException | UnsupportedEncodingException e) {
-                e.printStackTrace();
-            }
+            Thread.sleep(10);
+        } catch (MQClientException | UnsupportedEncodingException e) {
+            e.printStackTrace();
         }
 
-        for (int i = 0; i < 100000; i++) {
-            Thread.sleep(1000);
-        }
-        producer.shutdown();
+       // producer.shutdown();
     }
 }

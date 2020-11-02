@@ -29,6 +29,16 @@ public class MessageSysFlag {
     }
 
     public static int resetTransactionValue(final int flag, final int type) {
+
+
+
+        //  00000000 00000000 00000000 00001100
+        // ~ 按位取反
+        //  11111111 11111111 11111111 11110011
+
+
+
+
         return (flag & (~TRANSACTION_ROLLBACK_TYPE)) | type;
     }
 

@@ -556,8 +556,11 @@ public class CommitLog {
 
         String topic = msg.getTopic();
         int queueId = msg.getQueueId();
-
+        /// 获取事务状态
         final int tranType = MessageSysFlag.getTransactionValue(msg.getSysFlag());
+
+
+        // 事务
         if (tranType == MessageSysFlag.TRANSACTION_NOT_TYPE
             || tranType == MessageSysFlag.TRANSACTION_COMMIT_TYPE) {
             // Delay Delivery
@@ -838,9 +841,15 @@ public class CommitLog {
     }
 
     public SelectMappedBufferResult getMessage(final long offset, final int size) {
+
+        // 获取每个 MappedFile 大小，系统默认是1g
         int mappedFileSize = this.defaultMessageStore.getMessageStoreConfig().getMapedFileSizeCommitLog();
+
+        // 根据offset 获取MappedFile 文件
         MappedFile mappedFile = this.mappedFileQueue.findMappedFileByOffset(offset, offset == 0);
         if (mappedFile != null) {
+
+            /// 这个其实就是获取到了 offset在这个MappFile的位置
             int pos = (int) (offset % mappedFileSize);
             return mappedFile.selectMappedBuffer(pos, size);
         }

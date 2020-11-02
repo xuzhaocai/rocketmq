@@ -491,6 +491,9 @@ public class BrokerController {
                     log.warn("FileWatchService created error, can't load the certificate dynamically");
                 }
             }
+
+
+            // 初始化事务
             initialTransaction();
             initialAcl();
             initialRpcHooks();
@@ -504,6 +507,8 @@ public class BrokerController {
             this.transactionalMessageService = new TransactionalMessageServiceImpl(new TransactionalMessageBridge(this, this.getMessageStore()));
             log.warn("Load default transaction message hook service: {}", TransactionalMessageServiceImpl.class.getSimpleName());
         }
+
+
         this.transactionalMessageCheckListener = ServiceProvider.loadClass(ServiceProvider.TRANSACTION_LISTENER_ID, AbstractTransactionalMessageCheckListener.class);
         if (null == this.transactionalMessageCheckListener) {
             this.transactionalMessageCheckListener = new DefaultTransactionalMessageCheckListener();
@@ -573,6 +578,8 @@ public class BrokerController {
         /**
          * PullMessageProcessor
          */
+
+        //拉取消息处理器
         this.remotingServer.registerProcessor(RequestCode.PULL_MESSAGE, this.pullMessageProcessor, this.pullMessageExecutor);
         this.pullMessageProcessor.registerConsumeMessageHook(consumeMessageHookList);
 
@@ -845,7 +852,7 @@ public class BrokerController {
     }
     // 启动
     public void start() throws Exception {
-        if (this.messageStore != null) {
+        if (this.messageStore != null) {// 消息存储
             this.messageStore.start();
         }
 

@@ -492,9 +492,20 @@ public class DefaultMessageStore implements MessageStore {
         return commitLog;
     }
 
+    /**
+     * 获取消息
+     * @param group Consumer group that launches this query.  消费者组
+     * @param topic Topic to query.  topic
+     * @param queueId Queue ID to query.  队列id
+     * @param offset Logical offset to start from.  从哪个 offset 开始
+     * @param maxMsgNums Maximum count of messages to query.   获取最大数量
+     * @param messageFilter Message filter used to screen desired messages.  消息过滤器
+     * @return
+     */
     public GetMessageResult getMessage(final String group, final String topic, final int queueId, final long offset,
         final int maxMsgNums,
         final MessageFilter messageFilter) {
+        // 判断状态
         if (this.shutdown) {
             log.warn("message store has shutdown, so getMessage is forbidden");
             return null;
@@ -504,16 +515,16 @@ public class DefaultMessageStore implements MessageStore {
             log.warn("message store is not readable, so getMessage is forbidden " + this.runningFlags.getFlagBits());
             return null;
         }
-
+        // 获取开始时间
         long beginTime = this.getSystemClock().now();
-
+        // 获取消息的状态
         GetMessageStatus status = GetMessageStatus.NO_MESSAGE_IN_QUEUE;
         long nextBeginOffset = offset;
         long minOffset = 0;
         long maxOffset = 0;
 
         GetMessageResult getResult = new GetMessageResult();
-
+        // 获取最大的offset
         final long maxOffsetPy = this.commitLog.getMaxOffset();
 
         ConsumeQueue consumeQueue = findConsumeQueue(topic, queueId);
@@ -705,11 +716,19 @@ public class DefaultMessageStore implements MessageStore {
         return 0;
     }
 
+    /**
+     * offset
+     * @param commitLogOffset physical offset.
+     * @return
+     */
     public MessageExt lookMessageByOffset(long commitLogOffset) {
+
+        /// 获取MappedBuffer  4个大小
         SelectMappedBufferResult sbr = this.commitLog.getMessage(commitLogOffset, 4);
         if (null != sbr) {
             try {
                 // 1 TOTALSIZE
+                // 获取 总大小 ，就是这个消息的总大小
                 int size = sbr.getByteBuffer().getInt();
                 return lookMessageByOffset(commitLogOffset, size);
             } finally {
@@ -1120,10 +1139,17 @@ public class DefaultMessageStore implements MessageStore {
         this.commitLog.setConfirmOffset(phyOffset);
     }
 
+    /**
+     * 获取消息
+     * @param commitLogOffset  开始offset
+     * @param size  获取大小
+     * @return
+     */
     public MessageExt lookMessageByOffset(long commitLogOffset, int size) {
         SelectMappedBufferResult sbr = this.commitLog.getMessage(commitLogOffset, size);
         if (null != sbr) {
             try {
+                // 获取消息
                 return MessageDecoder.decode(sbr.getByteBuffer(), true, false);
             } finally {
                 sbr.release();
@@ -1133,7 +1159,15 @@ public class DefaultMessageStore implements MessageStore {
         return null;
     }
 
+    /**
+     * 获取消费者queue
+     * @param topic  主题
+     * @param queueId  队列ID
+     * @return
+     */
     public ConsumeQueue findConsumeQueue(String topic, int queueId) {
+
+        // 先从 缓存中获取
         ConcurrentMap<Integer, ConsumeQueue> map = consumeQueueTable.get(topic);
         if (null == map) {
             ConcurrentMap<Integer, ConsumeQueue> newMap = new ConcurrentHashMap<Integer, ConsumeQueue>(128);

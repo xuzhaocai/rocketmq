@@ -173,7 +173,27 @@ public class PullAPIWrapper {
             }
         }
     }
-    ///   拉取消息
+
+    /**
+     * TODO 拉取消息
+     * @param mq
+     * @param subExpression
+     * @param expressionType
+     * @param subVersion
+     * @param offset
+     * @param maxNums
+     * @param sysFlag
+     * @param commitOffset
+     * @param brokerSuspendMaxTimeMillis
+     * @param timeoutMillis
+     * @param communicationMode
+     * @param pullCallback
+     * @return
+     * @throws MQClientException
+     * @throws RemotingException
+     * @throws MQBrokerException
+     * @throws InterruptedException
+     */
     public PullResult pullKernelImpl(
         final MessageQueue mq,
         final String subExpression,
@@ -233,11 +253,11 @@ public class PullAPIWrapper {
 
             // pullMessageRequest
             PullMessageRequestHeader requestHeader = new PullMessageRequestHeader();
-            requestHeader.setConsumerGroup(this.consumerGroup);
+            requestHeader.setConsumerGroup(this.consumerGroup);// 设置组信息
             requestHeader.setTopic(mq.getTopic());
             requestHeader.setQueueId(mq.getQueueId());// queueId
             requestHeader.setQueueOffset(offset);
-            requestHeader.setMaxMsgNums(maxNums);// 最大拉取消息大小
+            requestHeader.setMaxMsgNums(maxNums);// 最大拉取消息大小 默认是32
             requestHeader.setSysFlag(sysFlagInner);
             requestHeader.setCommitOffset(commitOffset);
             requestHeader.setSuspendTimeoutMillis(brokerSuspendMaxTimeMillis);// 暂停超时时间15000

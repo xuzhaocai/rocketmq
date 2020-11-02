@@ -23,9 +23,9 @@ import org.apache.rocketmq.remoting.RPCHook;
 
 public class TransactionMQProducer extends DefaultMQProducer {
     private TransactionCheckListener transactionCheckListener;
-    private int checkThreadPoolMinSize = 1;
-    private int checkThreadPoolMaxSize = 1;
-    private int checkRequestHoldMax = 2000;
+    private int checkThreadPoolMinSize = 1;/// 检查线程池最小线程
+    private int checkThreadPoolMaxSize = 1;/// 检查线程池最大线程
+    private int checkRequestHoldMax = 2000;/// 检查请求数大小，就是那个线程池队列大小
 
     private ExecutorService executorService;
 
@@ -72,7 +72,7 @@ public class TransactionMQProducer extends DefaultMQProducer {
     @Override
     public TransactionSendResult sendMessageInTransaction(final Message msg,
         final Object arg) throws MQClientException {
-        if (null == this.transactionListener) {
+        if (null == this.transactionListener) {// 判断listener
             throw new MQClientException("TransactionListener is null", null);
         }
 

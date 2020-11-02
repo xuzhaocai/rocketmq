@@ -26,7 +26,14 @@ import org.apache.rocketmq.client.log.ClientLogger;
 import org.apache.rocketmq.common.ServiceThread;
 import org.apache.rocketmq.logging.InternalLogger;
 import org.apache.rocketmq.common.utils.ThreadUtils;
-/// 拉取消息服务
+
+/**
+ *
+ * 消息拉取服务
+ *
+ *
+ *
+ */
 public class PullMessageService extends ServiceThread {
     private final InternalLogger log = ClientLogger.getLog();
 
@@ -78,15 +85,22 @@ public class PullMessageService extends ServiceThread {
     public ScheduledExecutorService getScheduledExecutorService() {
         return scheduledExecutorService;
     }
+
+
+    /**
+     *
+     * TODO 重要方法 ，进行消息的拉取
+     * @param pullRequest  拉取请求
+     */
     // 拉取消息
     private void pullMessage(final PullRequest pullRequest) {
 
-        // 根据groupId 获取consumer实现impl
+        // 根据groupId 获取consumer实现impl  根据groupId 获取这个消费者
         final MQConsumerInner consumer = this.mQClientFactory.selectConsumer(pullRequest.getConsumerGroup());
         if (consumer != null) {
             DefaultMQPushConsumerImpl impl = (DefaultMQPushConsumerImpl) consumer;
 
-
+            ///TODO 重要
             // 拉去消息
             impl.pullMessage(pullRequest);
         } else {

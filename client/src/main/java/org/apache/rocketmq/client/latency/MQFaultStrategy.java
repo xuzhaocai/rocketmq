@@ -21,6 +21,11 @@ import org.apache.rocketmq.client.impl.producer.TopicPublishInfo;
 import org.apache.rocketmq.client.log.ClientLogger;
 import org.apache.rocketmq.logging.InternalLogger;
 import org.apache.rocketmq.common.message.MessageQueue;
+
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.Set;
+
 // mq 容错策略
 public class MQFaultStrategy {
     private final static InternalLogger log = ClientLogger.getLog();
@@ -58,7 +63,6 @@ public class MQFaultStrategy {
     public MessageQueue selectOneMessageQueue(final TopicPublishInfo tpInfo, final String lastBrokerName) {
         if (this.sendLatencyFaultEnable) {// 发送延迟故障启用
             try {
-
                 // 获取一个index
                 int index = tpInfo.getSendWhichQueue().getAndIncrement();
                 for (int i = 0; i < tpInfo.getMessageQueueList().size(); i++) {
@@ -121,17 +125,13 @@ public class MQFaultStrategy {
      */
     private long computeNotAvailableDuration(final long currentLatency) {
         /// latencyMax = {50L, 100L, 550L, 1000L, 2000L, 3000L, 15000L};
-
        ///  notAvailableDuration = {0L, 0L, 30000L, 60000L, 120000L, 180000L, 600000L};
         // 倒着遍历
         for (int i = latencyMax.length - 1; i >= 0; i--) {
-
             // 如果延时大于某个时间，就返回对应的那个服务不可用时间， 可以看出来，响应延迟100ms 以下是没有问题的
             if (currentLatency >= latencyMax[i])
-
                 return this.notAvailableDuration[i];
         }
-
         return 0;
     }
 }

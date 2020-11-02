@@ -227,10 +227,8 @@ public abstract class NettyRemotingAbstract {
                         // 执行之前的钩子
                         doBeforeRpcHooks(RemotingHelper.parseChannelRemoteAddr(ctx.channel()), cmd);
                         // 使用processor 来处理
-
                         // 交给执行器处理
                         final RemotingCommand response = pair.getObject1().processRequest(ctx, cmd);
-
                         // 执行之后的钩子
                         doAfterRpcHooks(RemotingHelper.parseChannelRemoteAddr(ctx.channel()), cmd, response);
                         // 如果不是单向请求
@@ -274,8 +272,6 @@ public abstract class NettyRemotingAbstract {
                 ctx.writeAndFlush(response);
                 return;
             }
-
-
             try {
                 // 创建请求task
                 final RequestTask requestTask = new RequestTask(run, ctx.channel(), cmd);
@@ -516,14 +512,11 @@ public abstract class NettyRemotingAbstract {
     public void invokeAsyncImpl(final Channel channel, final RemotingCommand request, final long timeoutMillis,
         final InvokeCallback invokeCallback)
         throws InterruptedException, RemotingTooMuchRequestException, RemotingTimeoutException, RemotingSendRequestException {
-
-
         long beginStartTime = System.currentTimeMillis();
         final int opaque = request.getOpaque();
         //信号量限流
         boolean acquired = this.semaphoreAsync.tryAcquire(timeoutMillis, TimeUnit.MILLISECONDS);
         if (acquired) {// 获得许可
-
             final SemaphoreReleaseOnlyOnce once = new SemaphoreReleaseOnlyOnce(this.semaphoreAsync);
             // 判断超时
             long costTime = System.currentTimeMillis() - beginStartTime;
@@ -531,8 +524,6 @@ public abstract class NettyRemotingAbstract {
                 once.release();
                 throw new RemotingTimeoutException("invokeAsyncImpl call timeout");
             }
-
-
             // 封装 ResponseFuture
             final ResponseFuture responseFuture = new ResponseFuture(channel, opaque, timeoutMillis - costTime, invokeCallback, once);
             // 放入 response 表中
