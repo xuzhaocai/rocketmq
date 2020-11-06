@@ -34,22 +34,48 @@ public class IndexFile {
     private static int invalidIndex = 0;
     private final int hashSlotNum;
     private final int indexNum;
-    private final MappedFile mappedFile;
+    private final MappedFile mappedFile;// mappedFile
     private final FileChannel fileChannel;
     private final MappedByteBuffer mappedByteBuffer;
     private final IndexHeader indexHeader;
 
+    /**
+     *
+     * @param fileName  文件名字
+     * @param hashSlotNum  hash槽
+     * @param indexNum    索引数量
+     * @param endPhyOffset 最后的一个物理地址
+     * @param endTimestamp  最后的一个时间
+     * @throws IOException
+     */
     public IndexFile(final String fileName, final int hashSlotNum, final int indexNum,
         final long endPhyOffset, final long endTimestamp) throws IOException {
+
+
+        // 文件总大小  差不多400m
         int fileTotalSize =
+
+                //40+ 2qw+
+        // index 头40 + 5000000*4 + 5000000*4*20
             IndexHeader.INDEX_HEADER_SIZE + (hashSlotNum * hashSlotSize) + (indexNum * indexSize);
+
+
+        // 创建mappedFile
         this.mappedFile = new MappedFile(fileName, fileTotalSize);
+
+        // channel
         this.fileChannel = this.mappedFile.getFileChannel();
+        // mapped byte buffer
         this.mappedByteBuffer = this.mappedFile.getMappedByteBuffer();
+        // hash 槽
         this.hashSlotNum = hashSlotNum;
+
+        // index 大小
         this.indexNum = indexNum;
 
         ByteBuffer byteBuffer = this.mappedByteBuffer.slice();
+
+        // index  header
         this.indexHeader = new IndexHeader(byteBuffer);
 
         if (endPhyOffset > 0) {
@@ -89,10 +115,27 @@ public class IndexFile {
         return this.mappedFile.destroy(intervalForcibly);
     }
 
+
+    /**
+     * 进行put key
+     * @param  key 就是生成的那个
+     * @param phyOffset  commitlog offset
+     * @param storeTimestamp  写入时间戳
+     * @return
+     */
     public boolean putKey(final String key, final long phyOffset, final long storeTimestamp) {
+
+        // index 没有超
         if (this.indexHeader.getIndexCount() < this.indexNum) {
+
+
+            // 计算key的一个hash值
             int keyHash = indexKeyHashMethod(key);
+
+            // 计算这个hash值在哪个hash 槽上面
             int slotPos = keyHash % this.hashSlotNum;
+
+            // 计算hash槽的一个真实位置
             int absSlotPos = IndexHeader.INDEX_HEADER_SIZE + slotPos * hashSlotSize;
 
             FileLock fileLock = null;
@@ -101,13 +144,22 @@ public class IndexFile {
 
                 // fileLock = this.fileChannel.lock(absSlotPos, hashSlotSize,
                 // false);
+
+
+
+                //获取第一int值 就是槽里面的值
                 int slotValue = this.mappedByteBuffer.getInt(absSlotPos);
+
+
                 if (slotValue <= invalidIndex || slotValue > this.indexHeader.getIndexCount()) {
                     slotValue = invalidIndex;
                 }
 
-                long timeDiff = storeTimestamp - this.indexHeader.getBeginTimestamp();
 
+
+                ///TODO 这一段没搞明白
+                long timeDiff = storeTimestamp - this.indexHeader.getBeginTimestamp();
+                // 计算 时间差
                 timeDiff = timeDiff / 1000;
 
                 if (this.indexHeader.getBeginTimestamp() <= 0) {
@@ -118,25 +170,45 @@ public class IndexFile {
                     timeDiff = 0;
                 }
 
+
+
+                // 计算index真实位置
                 int absIndexPos =
                     IndexHeader.INDEX_HEADER_SIZE + this.hashSlotNum * hashSlotSize
                         + this.indexHeader.getIndexCount() * indexSize;
 
                 this.mappedByteBuffer.putInt(absIndexPos, keyHash);
                 this.mappedByteBuffer.putLong(absIndexPos + 4, phyOffset);
+
+                // 存了一个与这个indexfile 中最开始那个msg 写入时间的一个时间差
                 this.mappedByteBuffer.putInt(absIndexPos + 4 + 8, (int) timeDiff);
+
+                // 存储原来槽里的index值
                 this.mappedByteBuffer.putInt(absIndexPos + 4 + 8 + 4, slotValue);
 
-                this.mappedByteBuffer.putInt(absSlotPos, this.indexHeader.getIndexCount());
 
+
+
+                //在hash槽里面存放了index ，然后通过index就能获取到真实的一个存储物理地址
+                this.mappedByteBuffer.putInt(absSlotPos, this.indexHeader.getIndexCount());
+                // 如果是1的话，就说明是第一个index
                 if (this.indexHeader.getIndexCount() <= 1) {
+
+                    // 设置开始的物理offset
                     this.indexHeader.setBeginPhyOffset(phyOffset);
+
+                    // 设置开始 写入时间
                     this.indexHeader.setBeginTimestamp(storeTimestamp);
                 }
 
+
+                // 增加hash槽的一个数量+1
                 this.indexHeader.incHashSlotCount();
+                //index数量+1
                 this.indexHeader.incIndexCount();
+                // 最后的物理offset
                 this.indexHeader.setEndPhyOffset(phyOffset);
+                // 最后的一个写入时间
                 this.indexHeader.setEndTimestamp(storeTimestamp);
 
                 return true;

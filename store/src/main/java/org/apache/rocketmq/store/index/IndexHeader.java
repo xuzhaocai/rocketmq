@@ -22,6 +22,9 @@ import java.util.concurrent.atomic.AtomicLong;
 
 public class IndexHeader {
     public static final int INDEX_HEADER_SIZE = 40;
+
+
+    // 在indexFile 里面的位置
     private static int beginTimestampIndex = 0;
     private static int endTimestampIndex = 8;
     private static int beginPhyoffsetIndex = 16;
@@ -29,12 +32,22 @@ public class IndexHeader {
     private static int hashSlotcountIndex = 32;
     private static int indexCountIndex = 36;
     private final ByteBuffer byteBuffer;
-    private AtomicLong beginTimestamp = new AtomicLong(0);
-    private AtomicLong endTimestamp = new AtomicLong(0);
-    private AtomicLong beginPhyOffset = new AtomicLong(0);
-    private AtomicLong endPhyOffset = new AtomicLong(0);
-    private AtomicInteger hashSlotCount = new AtomicInteger(0);
 
+    // 第一个index的 存储时间
+    private AtomicLong beginTimestamp = new AtomicLong(0);
+
+    // 最后一个index的存储时间
+    private AtomicLong endTimestamp = new AtomicLong(0);
+
+    // 开始的一个offset
+    private AtomicLong beginPhyOffset = new AtomicLong(0);
+
+    // 结束的一个offset
+    private AtomicLong endPhyOffset = new AtomicLong(0);
+
+    /// hash槽的数量
+    private AtomicInteger hashSlotCount = new AtomicInteger(0);
+    // index 数量 的计数器
     private AtomicInteger indexCount = new AtomicInteger(1);
 
     public IndexHeader(final ByteBuffer byteBuffer) {

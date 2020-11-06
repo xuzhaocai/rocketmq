@@ -1579,9 +1579,12 @@ public class DefaultMessageStore implements MessageStore {
                 case MessageSysFlag.TRANSACTION_NOT_TYPE:
                 case MessageSysFlag.TRANSACTION_COMMIT_TYPE:
 
-
+                    // 进行存储
                     DefaultMessageStore.this.putMessagePositionInfo(request);
                     break;
+
+
+                    // 这是事务还没有提交 或者是 已经回滚的，不需要写入 ConsumeQueue
                 case MessageSysFlag.TRANSACTION_PREPARED_TYPE:
                 case MessageSysFlag.TRANSACTION_ROLLBACK_TYPE:
                     break;
@@ -1593,7 +1596,12 @@ public class DefaultMessageStore implements MessageStore {
 
         @Override
         public void dispatch(DispatchRequest request) {
+
+            // 判断是否开启索引功能  默认是的
             if (DefaultMessageStore.this.messageStoreConfig.isMessageIndexEnable()) {
+
+
+                // 进行构建索引
                 DefaultMessageStore.this.indexService.buildIndex(request);
             }
         }

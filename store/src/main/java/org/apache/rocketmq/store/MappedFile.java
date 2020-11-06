@@ -70,6 +70,8 @@ public class MappedFile extends ReferenceResource {
     }
 
     public MappedFile(final String fileName, final int fileSize) throws IOException {
+
+        // 初始化
         init(fileName, fileSize);
     }
 
@@ -145,15 +147,20 @@ public class MappedFile extends ReferenceResource {
 
     public void init(final String fileName, final int fileSize,
         final TransientStorePool transientStorePool) throws IOException {
+
+        /// 初始化
         init(fileName, fileSize);
         this.writeBuffer = transientStorePool.borrowBuffer();
         this.transientStorePool = transientStorePool;
     }
     // 初始化
     private void init(final String fileName, final int fileSize) throws IOException {
-        this.fileName = fileName;
+        this.fileName = fileName;// 文件名
         this.fileSize = fileSize;// 文件大小
         this.file = new File(fileName);// 创建文件句柄
+
+
+        // 像 commitLog 与consume queue 的文件名都是 offset命名的
         this.fileFromOffset = Long.parseLong(this.file.getName());///文件偏移量
         boolean ok = false;
         // 这个就是判断file
@@ -162,7 +169,9 @@ public class MappedFile extends ReferenceResource {
         try {
             this.fileChannel = new RandomAccessFile(this.file, "rw").getChannel();
             this.mappedByteBuffer = this.fileChannel.map(MapMode.READ_WRITE, 0, fileSize);
+            ///累加总mapped的大小
             TOTAL_MAPPED_VIRTUAL_MEMORY.addAndGet(fileSize);
+            // 累加总mapped的文件
             TOTAL_MAPPED_FILES.incrementAndGet();
             ok = true;
         } catch (FileNotFoundException e) {

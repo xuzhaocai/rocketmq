@@ -419,14 +419,15 @@ public class ConsumeQueue {
 
 
 
-
+            // 写入ConsumeQueue 队列中
             boolean result = this.putMessagePositionInfo(request.getCommitLogOffset(),
                 request.getMsgSize(), tagsCode, request.getConsumeQueueOffset());
 
 
-
-
+            // 写入成功
             if (result) {
+
+                //这里就是向StoreCheckpointService 更新 logicsMsg  的一个写入时间（这个写入时间是这条消息存入commitLog的一个时间）
                 this.defaultMessageStore.getStoreCheckpoint().setLogicsMsgTimestamp(request.getStoreTimestamp());
                 return;
             } else {
