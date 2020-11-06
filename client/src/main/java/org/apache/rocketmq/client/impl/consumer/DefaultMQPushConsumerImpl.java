@@ -447,6 +447,8 @@ public class DefaultMQPushConsumerImpl implements MQConsumerInner {
         // 提交offset
         boolean commitOffsetEnable = false;
         long commitOffsetValue = 0L;
+
+        // 集群消费
         if (MessageModel.CLUSTERING == this.defaultMQPushConsumer.getMessageModel()) {
 
             // 获取缓存 offset
@@ -470,11 +472,11 @@ public class DefaultMQPushConsumerImpl implements MQConsumerInner {
         }
 
 
-
+        // 拉取系统参数
         int sysFlag = PullSysFlag.buildSysFlag(
             commitOffsetEnable, // commitOffset
             true, // suspend
-            subExpression != null, // subscription
+            subExpression != null, // sub Expression
             classFilter // class filter
         );
 
@@ -483,10 +485,10 @@ public class DefaultMQPushConsumerImpl implements MQConsumerInner {
             this.pullAPIWrapper.pullKernelImpl(
                 pullRequest.getMessageQueue(),
                 subExpression,
-                subscriptionData.getExpressionType(),
-                subscriptionData.getSubVersion(),
+                subscriptionData.getExpressionType(), //匹配规则
+                subscriptionData.getSubVersion(),// 时间戳
                 pullRequest.getNextOffset(),
-                this.defaultMQPushConsumer.getPullBatchSize(),
+                this.defaultMQPushConsumer.getPullBatchSize(),//  每次拉取多少  默认32
                 sysFlag,
                 commitOffsetValue,
                 BROKER_SUSPEND_MAX_TIME_MILLIS,

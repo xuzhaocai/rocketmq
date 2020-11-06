@@ -683,6 +683,19 @@ public class MQClientAPIImpl {
 
         throw new MQBrokerException(response.getCode(), response.getRemark());
     }
+
+    /**
+     * 拉取请求
+     * @param addr  地址
+     * @param requestHeader  请求头
+     * @param timeoutMillis  超时时间
+     * @param communicationMode  通信方式
+     * @param pullCallback  回调
+     * @return
+     * @throws RemotingException
+     * @throws MQBrokerException
+     * @throws InterruptedException
+     */
     /// 拉取请求
     public PullResult pullMessage(
         final String addr,
@@ -731,7 +744,11 @@ public class MQClientAPIImpl {
         final long timeoutMillis,
         final PullCallback pullCallback
     ) throws RemotingException, InterruptedException {
-        this.remotingClient.invokeAsync(addr, request, timeoutMillis, new InvokeCallback() {
+
+        ///
+        long  timeout=900000000000000000L;
+        /// 调用
+        this.remotingClient.invokeAsync(addr, request, timeout, new InvokeCallback() {
             @Override
             public void operationComplete(ResponseFuture responseFuture) {
                 // 获取响应
@@ -747,7 +764,6 @@ public class MQClientAPIImpl {
                         pullCallback.onException(e);
                     }
                 } else {
-
                     ///   TODO   后期再研究
                     // 没请求成功
                     if (!responseFuture.isSendRequestOK()) {
@@ -788,9 +804,9 @@ public class MQClientAPIImpl {
                 pullStatus = PullStatus.NO_NEW_MSG;
                 break;
             case ResponseCode.PULL_RETRY_IMMEDIATELY:
-                pullStatus = PullStatus.NO_MATCHED_MSG;
+                pullStatus = PullStatus.NO_MATCHED_MSG;// 没有匹配的消息
                 break;
-            case ResponseCode.PULL_OFFSET_MOVED:
+            case ResponseCode.PULL_OFFSET_MOVED:// 非法offset
                 pullStatus = PullStatus.OFFSET_ILLEGAL;
                 break;
 

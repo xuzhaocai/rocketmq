@@ -71,7 +71,11 @@ public class BrokerOuterAPI {
     }
 
     public BrokerOuterAPI(final NettyClientConfig nettyClientConfig, RPCHook rpcHook) {
+
+        // 创建 client
         this.remotingClient = new NettyRemotingClient(nettyClientConfig);
+
+        // 注册钩子
         this.remotingClient.registerRPCHook(rpcHook);
     }
 

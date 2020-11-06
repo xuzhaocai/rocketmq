@@ -40,30 +40,40 @@ public class ConsumeQueue {
     private final String storePath;
     private final int mappedFileSize;
     private long maxPhysicOffset = -1;
-    private volatile long minLogicOffset = 0;
+    private volatile long minLogicOffset = 0;// 最小的一个offset
     private ConsumeQueueExt consumeQueueExt = null;
 
+    /**
+     * 创建 ConsumeQueue
+     * @param topic
+     * @param queueId
+     * @param storePath
+     * @param mappedFileSize
+     * @param defaultMessageStore
+     */
     public ConsumeQueue(
         final String topic,
         final int queueId,
         final String storePath,
-        final int mappedFileSize,
+        final int mappedFileSize,// 大小
         final DefaultMessageStore defaultMessageStore) {
+
+
         this.storePath = storePath;
         this.mappedFileSize = mappedFileSize;
         this.defaultMessageStore = defaultMessageStore;
 
         this.topic = topic;
         this.queueId = queueId;
-
+        //queue的一个位置
         String queueDir = this.storePath
             + File.separator + topic
             + File.separator + queueId;
-
+        /// 创建一个mappedFileQueue  这个东西就是一堆放mappedFile的
         this.mappedFileQueue = new MappedFileQueue(queueDir, mappedFileSize, null);
-
+        // 20byte 大小的
         this.byteBufferIndex = ByteBuffer.allocate(CQ_STORE_UNIT_SIZE);
-
+        /// 默认是false
         if (defaultMessageStore.getMessageStoreConfig().isEnableConsumeQueueExt()) {
             this.consumeQueueExt = new ConsumeQueueExt(
                 topic,
@@ -375,14 +385,26 @@ public class ConsumeQueue {
         return this.minLogicOffset / CQ_STORE_UNIT_SIZE;
     }
 
+    /**
+     * 将 msg 的一些存储到consumeQueue 上面
+     * @param request
+     */
     public void putMessagePositionInfoWrapper(DispatchRequest request) {
         final int maxRetries = 30;
+
+        /// 是否 可以写
         boolean canWrite = this.defaultMessageStore.getRunningFlags().isCQWriteable();
         for (int i = 0; i < maxRetries && canWrite; i++) {
+            // 获取tag
             long tagsCode = request.getTagsCode();
+
+            // 是否写入扩展的一些信息 默认是false的，也就是默认这一块是不跑的
             if (isExtWriteEnable()) {
                 ConsumeQueueExt.CqExtUnit cqExtUnit = new ConsumeQueueExt.CqExtUnit();
+
+
                 cqExtUnit.setFilterBitMap(request.getBitMap());
+                /// 设置写入时间
                 cqExtUnit.setMsgStoreTime(request.getStoreTimestamp());
                 cqExtUnit.setTagsCode(request.getTagsCode());
 
@@ -394,8 +416,16 @@ public class ConsumeQueue {
                         topic, queueId, request.getCommitLogOffset());
                 }
             }
+
+
+
+
             boolean result = this.putMessagePositionInfo(request.getCommitLogOffset(),
                 request.getMsgSize(), tagsCode, request.getConsumeQueueOffset());
+
+
+
+
             if (result) {
                 this.defaultMessageStore.getStoreCheckpoint().setLogicsMsgTimestamp(request.getStoreTimestamp());
                 return;
@@ -417,6 +447,14 @@ public class ConsumeQueue {
         this.defaultMessageStore.getRunningFlags().makeLogicsQueueError();
     }
 
+    /**
+     *  存储到consume queue 中
+     * @param offset  在commitLog中的一个offset
+     * @param size    消息大小
+     * @param tagsCode  tag
+     * @param cqOffset  consumeQueue
+     * @return
+     */
     private boolean putMessagePositionInfo(final long offset, final int size, final long tagsCode,
         final long cqOffset) {
 
@@ -424,36 +462,46 @@ public class ConsumeQueue {
             log.warn("Maybe try to build consume queue repeatedly maxPhysicOffset={} phyOffset={}", maxPhysicOffset, offset);
             return true;
         }
-
+        //将   offset ， size ， tagsCode   放到 buffer中 ，正好20字节
         this.byteBufferIndex.flip();
         this.byteBufferIndex.limit(CQ_STORE_UNIT_SIZE);
-        this.byteBufferIndex.putLong(offset);
-        this.byteBufferIndex.putInt(size);
-        this.byteBufferIndex.putLong(tagsCode);
+        this.byteBufferIndex.putLong(offset);//8
+        this.byteBufferIndex.putInt(size);//4
+        this.byteBufferIndex.putLong(tagsCode);//8
 
+
+        // 这个就是根据consumeQueue offset  计算在 ConsumeQueue 的位置
         final long expectLogicOffset = cqOffset * CQ_STORE_UNIT_SIZE;
-
+        // 获取MappedFile
         MappedFile mappedFile = this.mappedFileQueue.getLastMappedFile(expectLogicOffset);
         if (mappedFile != null) {
-
+            //判断 这个mappedFile是否是第一个  并且 conumseQueue offset 不是0  并且 mappedFile 写位置是0
             if (mappedFile.isFirstCreateInQueue() && cqOffset != 0 && mappedFile.getWrotePosition() == 0) {
+                // 设置 最小offset
                 this.minLogicOffset = expectLogicOffset;
+                // 设置从哪开始flush
                 this.mappedFileQueue.setFlushedWhere(expectLogicOffset);
+                // 设置从哪开始commit
                 this.mappedFileQueue.setCommittedWhere(expectLogicOffset);
                 this.fillPreBlank(mappedFile, expectLogicOffset);
                 log.info("fill pre blank space " + mappedFile.getFileName() + " " + expectLogicOffset + " "
                     + mappedFile.getWrotePosition());
             }
 
-            if (cqOffset != 0) {
-                long currentLogicOffset = mappedFile.getWrotePosition() + mappedFile.getFileFromOffset();
 
+            //不是0
+            if (cqOffset != 0) {
+
+                // 当前在这个consumeQueue中的offset
+                long currentLogicOffset = mappedFile.getWrotePosition() + mappedFile.getFileFromOffset();
+                // 你现在要插入的offset 比  当前在这个consumeQueue中的offset要小，这个就是说明 你在找之前的位置插入，但是人家都已经有东西了
+                // 要是让你插入的话，就会造成重复的，所以这里不让你插入的
                 if (expectLogicOffset < currentLogicOffset) {
                     log.warn("Build  consume queue repeatedly, expectLogicOffset: {} currentLogicOffset: {} Topic: {} QID: {} Diff: {}",
                         expectLogicOffset, currentLogicOffset, this.topic, this.queueId, expectLogicOffset - currentLogicOffset);
                     return true;
                 }
-
+                // 按照正常情况来说是一样大的，但是如果不一样的话，它就告诉你说 这个队列可能会出错，其实想想的话 应该是一样大的
                 if (expectLogicOffset != currentLogicOffset) {
                     LOG_ERROR.warn(
                         "[BUG]logic queue order maybe wrong, expectLogicOffset: {} currentLogicOffset: {} Topic: {} QID: {} Diff: {}",
@@ -465,7 +513,11 @@ public class ConsumeQueue {
                     );
                 }
             }
+
+            // 设置最大的那个 物理offset
             this.maxPhysicOffset = offset + size;
+
+            // 追加消息
             return mappedFile.appendMessage(this.byteBufferIndex.array());
         }
         return false;
@@ -482,12 +534,14 @@ public class ConsumeQueue {
             mappedFile.appendMessage(byteBuffer.array());
         }
     }
-
+    //根据index获取buffer
     public SelectMappedBufferResult getIndexBuffer(final long startIndex) {
         int mappedFileSize = this.mappedFileSize;
-        long offset = startIndex * CQ_STORE_UNIT_SIZE;
+
+        // offset
+        long offset = startIndex * CQ_STORE_UNIT_SIZE;//size 是20
         if (offset >= this.getMinLogicOffset()) {
-            MappedFile mappedFile = this.mappedFileQueue.findMappedFileByOffset(offset);
+            MappedFile mappedFile = this.mappedFileQueue.findMappedFileByOffset(offset);/// 根据offset 获取在哪个mappedFile中
             if (mappedFile != null) {
                 SelectMappedBufferResult result = mappedFile.selectMappedBuffer((int) (offset % mappedFileSize));
                 return result;

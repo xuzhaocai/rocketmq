@@ -93,6 +93,8 @@ public class RemotingUtil {
 
     public static String getLocalAddress() {
         try {
+
+            ///遍历网络接口以获得第一个非环回和非私有地址
             // Traversal Network interface to get the first non-loopback and non-private address
             Enumeration<NetworkInterface> enumeration = NetworkInterface.getNetworkInterfaces();
             ArrayList<String> ipv4Result = new ArrayList<String>();

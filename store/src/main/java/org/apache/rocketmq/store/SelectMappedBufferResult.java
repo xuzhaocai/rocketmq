@@ -29,9 +29,9 @@ public class SelectMappedBufferResult {
     private MappedFile mappedFile;// 对应的MappedFile
 
     public SelectMappedBufferResult(long startOffset, ByteBuffer byteBuffer, int size, MappedFile mappedFile) {
-        this.startOffset = startOffset;
+        this.startOffset = startOffset;// 从哪个offset开始的
         this.byteBuffer = byteBuffer;
-        this.size = size;
+        this.size = size;// 可以读的一个大小
         this.mappedFile = mappedFile;
     }
 

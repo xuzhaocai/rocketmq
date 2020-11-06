@@ -80,7 +80,7 @@ public class NamesrvController {
     public boolean initialize() {
 
         this.kvConfigManager.load();
-
+        // 创建server
         this.remotingServer = new NettyRemotingServer(this.nettyServerConfig, this.brokerHousekeepingService);
         // 创建默认8 线程的线程池
         this.remotingExecutor =
@@ -89,6 +89,7 @@ public class NamesrvController {
         /// 注册processor
         this.registerProcessor();
         // 任务调度线程池---用来扫描掉线的broker
+        ///10s
         this.scheduledExecutorService.scheduleAtFixedRate(new Runnable() {
 
             @Override
@@ -97,6 +98,7 @@ public class NamesrvController {
             }
         }, 5, 10, TimeUnit.SECONDS);
 
+
         this.scheduledExecutorService.scheduleAtFixedRate(new Runnable() {
 
             @Override
@@ -104,7 +106,7 @@ public class NamesrvController {
                 NamesrvController.this.kvConfigManager.printAllPeriodically();
             }
         }, 1, 10, TimeUnit.MINUTES);
-        // TODO
+        // TODO tls    ssl
         if (TlsSystemConfig.tlsMode != TlsMode.DISABLED) {
             // Register a listener to reload SslContext
             try {
@@ -146,6 +148,9 @@ public class NamesrvController {
         return true;
     }
 
+    /**
+     * 注册processor
+     */
     private void registerProcessor() {
         // 默认是false的
         if (namesrvConfig.isClusterTest()) {
@@ -153,12 +158,14 @@ public class NamesrvController {
             this.remotingServer.registerDefaultProcessor(new ClusterTestRequestProcessor(this, namesrvConfig.getProductEnvName()),
                 this.remotingExecutor);
         } else {
-            //设置默认processor
+            //设置默认请求处理器 processor  由 remotingExecutor线程池来执行
             this.remotingServer.registerDefaultProcessor(new DefaultRequestProcessor(this), this.remotingExecutor);
         }
     }
 
     public void start() throws Exception {
+
+        // 启动server
         this.remotingServer.start();// server start
 
         if (this.fileWatchService != null) {

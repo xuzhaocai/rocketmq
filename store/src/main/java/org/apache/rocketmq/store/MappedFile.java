@@ -227,16 +227,27 @@ public class MappedFile extends ReferenceResource {
         return this.fileFromOffset;
     }
 
+    /**
+     * 进行追加写
+     * @param data 数据
+     * @return
+     */
     public boolean appendMessage(final byte[] data) {
-        int currentPos = this.wrotePosition.get();
 
-        if ((currentPos + data.length) <= this.fileSize) {
+        // 获取当前写的位置
+        int currentPos = this.wrotePosition.get();
+        // 判断在这个MappedFile中能不能放开
+        if ((currentPos + data.length) <= this.fileSize) {// 如果是可以放开的话
             try {
+
+                /// 写入消息
                 this.fileChannel.position(currentPos);
                 this.fileChannel.write(ByteBuffer.wrap(data));
             } catch (Throwable e) {
                 log.error("Error occurred when append message to mappedFile.", e);
             }
+
+            // 重置 写入的位置
             this.wrotePosition.addAndGet(data.length);
             return true;
         }
@@ -408,9 +419,13 @@ public class MappedFile extends ReferenceResource {
 
         return null;
     }
-
+    // 根据位置读取
     public SelectMappedBufferResult selectMappedBuffer(int pos) {
+
+        /// 获取这个MappedFile里面的一个read position ，其实就是这个MappedFile 的一个可读位置
         int readPosition = getReadPosition();
+
+        /// 你读的这个位置要小于 可以读的位置
         if (pos < readPosition && pos >= 0) {
             if (this.hold()) {
                 ByteBuffer byteBuffer = this.mappedByteBuffer.slice();

@@ -65,9 +65,14 @@ function stopAll() {
 }
 
 function startAll() {
+    # 启动nameserv
     startNameserver
+    # 启动master  broker
     startBroker ./conf/dledger/broker-n0.conf
+
+    # 启动 slave broker
     startBroker ./conf/dledger/broker-n1.conf
+    # 启动 slave broker
     startBroker ./conf/dledger/broker-n2.conf
 }
 

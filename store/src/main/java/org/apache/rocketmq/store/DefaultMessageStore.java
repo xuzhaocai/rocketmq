@@ -154,7 +154,7 @@ public class DefaultMessageStore implements MessageStore {
         this.dispatcherList = new LinkedList<>();
         this.dispatcherList.addLast(new CommitLogDispatcherBuildConsumeQueue());
         this.dispatcherList.addLast(new CommitLogDispatcherBuildIndex());
-
+        // lock 文件
         File file = new File(StorePathConfigHelper.getLockFile(messageStoreConfig.getStorePathRootDir()));
         MappedFile.ensureDirOK(file.getParent());
         lockFile = new RandomAccessFile(file, "rw");
@@ -213,6 +213,7 @@ public class DefaultMessageStore implements MessageStore {
     }
 
     /**
+     * 启动
      * @throws Exception
      */
     public void start() throws Exception {
@@ -231,7 +232,11 @@ public class DefaultMessageStore implements MessageStore {
              * 3. Calculate the reput offset according to the consume queue;
              * 4. Make sure the fall-behind messages to be dispatched before starting the commitlog, especially when the broker role are automatically changed.
              */
+
+            // 获取 最小的那个offset
             long maxPhysicalPosInLogicQueue = commitLog.getMinOffset();
+
+            // 这个样子就能得到 consumerQueue 里面的offset
             for (ConcurrentMap<Integer, ConsumeQueue> maps : this.consumeQueueTable.values()) {
                 for (ConsumeQueue logic : maps.values()) {
                     if (logic.getMaxPhysicOffset() > maxPhysicalPosInLogicQueue) {
@@ -239,6 +244,9 @@ public class DefaultMessageStore implements MessageStore {
                     }
                 }
             }
+
+
+
             if (maxPhysicalPosInLogicQueue < 0) {
                 maxPhysicalPosInLogicQueue = 0;
             }
@@ -256,7 +264,14 @@ public class DefaultMessageStore implements MessageStore {
             }
             log.info("[SetReputOffset] maxPhysicalPosInLogicQueue={} clMinOffset={} clMaxOffset={} clConfirmedOffset={}",
                 maxPhysicalPosInLogicQueue, this.commitLog.getMinOffset(), this.commitLog.getMaxOffset(), this.commitLog.getConfirmOffset());
+
+
+            //设置从哪个offset 进行reput
             this.reputMessageService.setReputFromOffset(maxPhysicalPosInLogicQueue);
+
+
+
+            // 启动 reput
             this.reputMessageService.start();
 
             /**
@@ -277,7 +292,7 @@ public class DefaultMessageStore implements MessageStore {
             this.haService.start();
             this.handleScheduleMessageService(messageStoreConfig.getBrokerRole());
         }
-
+        ///
         this.flushConsumeQueueService.start();
         this.commitLog.start();
         this.storeStatsService.start();
@@ -394,16 +409,19 @@ public class DefaultMessageStore implements MessageStore {
         }
         // 获取系统时间
         long beginTime = this.getSystemClock().now();
-        /// 往commitlog 中put 消息
+        /// 往commitlog 中存储消息
         PutMessageResult result = this.commitLog.putMessage(msg);
 
         long eclipseTime = this.getSystemClock().now() - beginTime;
         if (eclipseTime > 500) {
             log.warn("putMessage not in lock eclipse time(ms)={}, bodyLength={}", eclipseTime, msg.getBody().length);
         }
+        // 记录状态
         this.storeStatsService.setPutMessageEntireTimeMax(eclipseTime);
 
         if (null == result || !result.isOk()) {
+
+            //记录状态
             this.storeStatsService.getPutMessageFailedTimes().incrementAndGet();
         }
 
@@ -472,10 +490,11 @@ public class DefaultMessageStore implements MessageStore {
      */
     @Override
     public boolean isOSPageCacheBusy() {
+        // 获取锁的时间
         long begin = this.getCommitLog().getBeginTimeInLock();
         long diff = this.systemClock.now() - begin;
-
         return diff < 10000000
+                // 1000
                 && diff > this.messageStoreConfig.getOsPageCacheBusyTimeOutMills();
     }
 
@@ -526,29 +545,45 @@ public class DefaultMessageStore implements MessageStore {
         GetMessageResult getResult = new GetMessageResult();
         // 获取最大的offset
         final long maxOffsetPy = this.commitLog.getMaxOffset();
+        // 获取消费者queue
 
         ConsumeQueue consumeQueue = findConsumeQueue(topic, queueId);
         if (consumeQueue != null) {
+
+            // 获取这个consume queue 最小的offset
             minOffset = consumeQueue.getMinOffsetInQueue();
+            // 获取这个consume queue 最大的offset
             maxOffset = consumeQueue.getMaxOffsetInQueue();
 
-            if (maxOffset == 0) {
+            if (maxOffset == 0) {/// consume queue 一开始没东西的时候
+                // 没有消息
                 status = GetMessageStatus.NO_MESSAGE_IN_QUEUE;
+
+                ///这个就是将 下个开始的offset设置成0
                 nextBeginOffset = nextOffsetCorrection(offset, 0);
-            } else if (offset < minOffset) {
+            } else if (offset < minOffset) {/// 你要的offset 比队列中的最小offset还小
+                /// offset 太小
                 status = GetMessageStatus.OFFSET_TOO_SMALL;
+
+                // 它给你纠正成 它这最小的
                 nextBeginOffset = nextOffsetCorrection(offset, minOffset);
-            } else if (offset == maxOffset) {
+            } else if (offset == maxOffset) {// 你的offset 正好和它最大的offset一样大
+
+
                 status = GetMessageStatus.OFFSET_OVERFLOW_ONE;
                 nextBeginOffset = nextOffsetCorrection(offset, offset);
-            } else if (offset > maxOffset) {
+            } else if (offset > maxOffset) {// 你要的offset 超过了它这最大的
                 status = GetMessageStatus.OFFSET_OVERFLOW_BADLY;
+
+
                 if (0 == minOffset) {
+                    // 把你这个调整成 0
                     nextBeginOffset = nextOffsetCorrection(offset, minOffset);
-                } else {
+                } else {// 否则就是把你这个调整成最大的
                     nextBeginOffset = nextOffsetCorrection(offset, maxOffset);
                 }
-            } else {
+            } else {// 在中间的情况
+
                 SelectMappedBufferResult bufferConsumeQueue = consumeQueue.getIndexBuffer(offset);
                 if (bufferConsumeQueue != null) {
                     try {
@@ -559,7 +594,7 @@ public class DefaultMessageStore implements MessageStore {
 
                         int i = 0;
                         final int maxFilterMessageCount = Math.max(16000, maxMsgNums * ConsumeQueue.CQ_STORE_UNIT_SIZE);
-                        final boolean diskFallRecorded = this.messageStoreConfig.isDiskFallRecorded();
+                        final boolean diskFallRecorded = this.messageStoreConfig.isDiskFallRecorded();/// 磁盘 降幅
                         ConsumeQueueExt.CqExtUnit cqExtUnit = new ConsumeQueueExt.CqExtUnit();
                         for (; i < bufferConsumeQueue.getSize() && i < maxFilterMessageCount; i += ConsumeQueue.CQ_STORE_UNIT_SIZE) {
                             long offsetPy = bufferConsumeQueue.getByteBuffer().getLong();
@@ -601,7 +636,7 @@ public class DefaultMessageStore implements MessageStore {
 
                                 continue;
                             }
-
+                            // 获取数据 从哪个offset开始 ，然后获取多大，其实就是从commitLog里面获取具体的
                             SelectMappedBufferResult selectResult = this.commitLog.getMessage(offsetPy, sizePy);
                             if (null == selectResult) {
                                 if (getResult.getBufferTotalSize() == 0) {
@@ -621,7 +656,7 @@ public class DefaultMessageStore implements MessageStore {
                                 selectResult.release();
                                 continue;
                             }
-
+                            // 记录状态
                             this.storeStatsService.getGetMessageTransferedMsgCount().incrementAndGet();
                             getResult.addMessage(selectResult);
                             status = GetMessageStatus.FOUND;
@@ -635,8 +670,11 @@ public class DefaultMessageStore implements MessageStore {
 
                         nextBeginOffset = offset + (i / ConsumeQueue.CQ_STORE_UNIT_SIZE);
 
+
                         long diff = maxOffsetPy - maxPhyOffsetPulling;
                         long memory = (long) (StoreUtil.TOTAL_PHYSICAL_MEMORY_SIZE
+
+                       //  访问消息在内存的最大比率  默认是40
                             * (this.messageStoreConfig.getAccessMessageInMemoryMaxRatio() / 100.0));
                         getResult.setSuggestPullingFromSlave(diff > memory);
                     } finally {
@@ -651,6 +689,7 @@ public class DefaultMessageStore implements MessageStore {
                 }
             }
         } else {
+            /// 没有对应的consume逻辑队列
             status = GetMessageStatus.NO_MATCHED_LOGIC_QUEUE;
             nextBeginOffset = nextOffsetCorrection(offset, 0);
         }
@@ -660,6 +699,7 @@ public class DefaultMessageStore implements MessageStore {
         } else {
             this.storeStatsService.getGetMessageTimesTotalMiss().incrementAndGet();
         }
+        // 计算已经消耗的时间
         long eclipseTime = this.getSystemClock().now() - beginTime;
         this.storeStatsService.setGetMessageEntireTimeMax(eclipseTime);
 
@@ -1167,7 +1207,7 @@ public class DefaultMessageStore implements MessageStore {
      */
     public ConsumeQueue findConsumeQueue(String topic, int queueId) {
 
-        // 先从 缓存中获取
+        // 先从consumeTable 缓存中获取，没有就创建
         ConcurrentMap<Integer, ConsumeQueue> map = consumeQueueTable.get(topic);
         if (null == map) {
             ConcurrentMap<Integer, ConsumeQueue> newMap = new ConcurrentHashMap<Integer, ConsumeQueue>(128);
@@ -1180,12 +1220,14 @@ public class DefaultMessageStore implements MessageStore {
         }
 
         ConsumeQueue logic = map.get(queueId);
-        if (null == logic) {
+        if (null == logic) {// 没有对应的ConsumeQueue
+
+            // 创建     ConsumeQueue
             ConsumeQueue newLogic = new ConsumeQueue(
-                topic,
-                queueId,
-                StorePathConfigHelper.getStorePathConsumeQueue(this.messageStoreConfig.getStorePathRootDir()),
-                this.getMessageStoreConfig().getMapedFileSizeConsumeQueue(),
+                topic,// 主题
+                queueId,// 队列id
+                StorePathConfigHelper.getStorePathConsumeQueue(this.messageStoreConfig.getStorePathRootDir()),// 存储位置
+                this.getMessageStoreConfig().getMapedFileSizeConsumeQueue(),/// MappedFile大小
                 this);
             ConsumeQueue oldLogic = map.putIfAbsent(queueId, newLogic);
             if (oldLogic != null) {
@@ -1197,15 +1239,18 @@ public class DefaultMessageStore implements MessageStore {
 
         return logic;
     }
-
+    ///下一个偏移校正  其实就是获取下一个offset的
     private long nextOffsetCorrection(long oldOffset, long newOffset) {
         long nextOffset = oldOffset;
+
+
+        // 角色判断 不是slave  ||     是否在slave中  check offset   默认是false
         if (this.getMessageStoreConfig().getBrokerRole() != BrokerRole.SLAVE || this.getMessageStoreConfig().isOffsetCheckInSlave()) {
-            nextOffset = newOffset;
+            nextOffset = newOffset;// 将下一个offset 变成新的
         }
         return nextOffset;
     }
-
+    // 判断某个offset 是否在磁盘上
     private boolean checkInDiskByCommitOffset(long offsetPy, long maxOffsetPy) {
         long memory = (long) (StoreUtil.TOTAL_PHYSICAL_MEMORY_SIZE * (this.messageStoreConfig.getAccessMessageInMemoryMaxRatio() / 100.0));
         return (maxOffsetPy - offsetPy) > memory;
@@ -1462,9 +1507,12 @@ public class DefaultMessageStore implements MessageStore {
             dispatcher.dispatch(req);
         }
     }
-
+    // 将msg的位置信息 放到 ConsumeQueue里面
     public void putMessagePositionInfo(DispatchRequest dispatchRequest) {
+        // 根据topic 与 queueid 获取consumeQueue
         ConsumeQueue cq = this.findConsumeQueue(dispatchRequest.getTopic(), dispatchRequest.getQueueId());
+
+        /// 进行存储
         cq.putMessagePositionInfoWrapper(dispatchRequest);
     }
 
@@ -1517,14 +1565,21 @@ public class DefaultMessageStore implements MessageStore {
         }, 6, TimeUnit.SECONDS);
     }
 
+
+
+    // 构建 ConsumeQueue
     class CommitLogDispatcherBuildConsumeQueue implements CommitLogDispatcher {
 
         @Override
         public void dispatch(DispatchRequest request) {
+
+            // 获取tranType 就是事务
             final int tranType = MessageSysFlag.getTransactionValue(request.getSysFlag());
-            switch (tranType) {
+            switch (tranType) {// 如果事务还没有完成 还在 prepared 阶段 或者是 回滚了，就不做处理了
                 case MessageSysFlag.TRANSACTION_NOT_TYPE:
                 case MessageSysFlag.TRANSACTION_COMMIT_TYPE:
+
+
                     DefaultMessageStore.this.putMessagePositionInfo(request);
                     break;
                 case MessageSysFlag.TRANSACTION_PREPARED_TYPE:
@@ -1533,7 +1588,7 @@ public class DefaultMessageStore implements MessageStore {
             }
         }
     }
-
+    // 构建 索引
     class CommitLogDispatcherBuildIndex implements CommitLogDispatcher {
 
         @Override
@@ -1743,12 +1798,14 @@ public class DefaultMessageStore implements MessageStore {
             return CleanConsumeQueueService.class.getSimpleName();
         }
     }
-
+    /// 刷Consume Queue 服务
     class FlushConsumeQueueService extends ServiceThread {
         private static final int RETRY_TIMES_OVER = 3;
         private long lastFlushTimestamp = 0;
 
         private void doFlush(int retryTimes) {
+
+            //当刷新消耗队列时，要刷新多少页
             int flushConsumeQueueLeastPages = DefaultMessageStore.this.getMessageStoreConfig().getFlushConsumeQueueLeastPages();
 
             if (retryTimes == RETRY_TIMES_OVER) {
@@ -1756,7 +1813,7 @@ public class DefaultMessageStore implements MessageStore {
             }
 
             long logicsMsgTimestamp = 0;
-
+            //1000 * 60
             int flushConsumeQueueThoroughInterval = DefaultMessageStore.this.getMessageStoreConfig().getFlushConsumeQueueThoroughInterval();
             long currentTimeMillis = System.currentTimeMillis();
             if (currentTimeMillis >= (this.lastFlushTimestamp + flushConsumeQueueThoroughInterval)) {
@@ -1789,6 +1846,7 @@ public class DefaultMessageStore implements MessageStore {
 
             while (!this.isStopped()) {
                 try {
+                    // 1000
                     int interval = DefaultMessageStore.this.getMessageStoreConfig().getFlushIntervalConsumeQueue();
                     this.waitForRunning(interval);
                     this.doFlush(1);
@@ -1815,7 +1873,7 @@ public class DefaultMessageStore implements MessageStore {
 
     class ReputMessageService extends ServiceThread {
 
-        private volatile long reputFromOffset = 0;
+        private volatile long reputFromOffset = 0;// 从哪个offset 开始reput
 
         public long getReputFromOffset() {
             return reputFromOffset;
@@ -1849,32 +1907,50 @@ public class DefaultMessageStore implements MessageStore {
         private boolean isCommitLogAvailable() {
             return this.reputFromOffset < DefaultMessageStore.this.commitLog.getMaxOffset();
         }
-
+        // 进行reput
         private void doReput() {
+
+            // 判断 如果 reputFromOffset 小于这个 commitlog 里面那个最小的offset
             if (this.reputFromOffset < DefaultMessageStore.this.commitLog.getMinOffset()) {
                 log.warn("The reputFromOffset={} is smaller than minPyOffset={}, this usually indicate that the dispatch behind too much and the commitlog has expired.",
                     this.reputFromOffset, DefaultMessageStore.this.commitLog.getMinOffset());
+
+                // 将reputFromOffset 设置成 那个commitlog 里面的最小的offset
                 this.reputFromOffset = DefaultMessageStore.this.commitLog.getMinOffset();
             }
+
+
+
             for (boolean doNext = true; this.isCommitLogAvailable() && doNext; ) {
 
                 if (DefaultMessageStore.this.getMessageStoreConfig().isDuplicationEnable()
                     && this.reputFromOffset >= DefaultMessageStore.this.getConfirmOffset()) {
                     break;
                 }
-
+                // 获取  offset位置的 MappedFileBuffer
                 SelectMappedBufferResult result = DefaultMessageStore.this.commitLog.getData(reputFromOffset);
                 if (result != null) {
                     try {
+
+                        // 获取这个消息开始offset
                         this.reputFromOffset = result.getStartOffset();
 
                         for (int readSize = 0; readSize < result.getSize() && doNext; ) {
+
+                            // 这里其实就是从这个offset 开始获取一条消息的信息
                             DispatchRequest dispatchRequest =
                                 DefaultMessageStore.this.commitLog.checkMessageAndReturnSize(result.getByteBuffer(), false, false);
+
+
+                            // 获取这一条消息的长度
                             int size = dispatchRequest.getBufferSize() == -1 ? dispatchRequest.getMsgSize() : dispatchRequest.getBufferSize();
 
-                            if (dispatchRequest.isSuccess()) {
+                            if (dispatchRequest.isSuccess()) {// 如果成功的话
                                 if (size > 0) {
+
+                                    // 这个就是将dispatchRequest 交给 Dispatch 集合里面的 Dispatcher处理。这里DispatcherList 就是构造方法里面塞进去的那两个
+
+                                    // 一个是 consumeQueue， 一个index
                                     DefaultMessageStore.this.doDispatch(dispatchRequest);
 
                                     if (BrokerRole.SLAVE != DefaultMessageStore.this.getMessageStoreConfig().getBrokerRole()
@@ -1924,10 +2000,12 @@ public class DefaultMessageStore implements MessageStore {
         @Override
         public void run() {
             DefaultMessageStore.log.info(this.getServiceName() + " service started");
-
+            // 判断状态
             while (!this.isStopped()) {
                 try {
                     Thread.sleep(1);
+
+                    // 进行 reput
                     this.doReput();
                 } catch (Exception e) {
                     DefaultMessageStore.log.warn(this.getServiceName() + " service has exception. ", e);

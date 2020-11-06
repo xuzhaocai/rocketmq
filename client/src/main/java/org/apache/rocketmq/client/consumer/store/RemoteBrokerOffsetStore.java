@@ -111,16 +111,9 @@ public class RemoteBrokerOffsetStore implements OffsetStore {
                 ///
                 case READ_FROM_STORE: {
                     try {
-
-
                         // 从远程broker中获取消费的offset
                         long brokerOffset = this.fetchConsumeOffsetFromBroker(mq);
-
-
-
-
                         AtomicLong offset = new AtomicLong(brokerOffset);
-
                         // 更新一下本地的一个offset
                         this.updateOffset(mq, offset.get(), false);
                         return brokerOffset;

@@ -196,24 +196,47 @@ public class BrokerController {
         this.consumerFilterManager = new ConsumerFilterManager(this);
         /// 生产者管理
         this.producerManager = new ProducerManager();
+
+        // 扫描 没有活动的channel
         this.clientHousekeepingService = new ClientHousekeepingService(this);
 
+
+
+
         this.broker2Client = new Broker2Client(this);
+
+        // 订阅组管理
         this.subscriptionGroupManager = new SubscriptionGroupManager(this);
+
+        //broker 对外api
         this.brokerOuterAPI = new BrokerOuterAPI(nettyClientConfig);
+
+
+
         this.filterServerManager = new FilterServerManager(this);
 
         this.slaveSynchronize = new SlaveSynchronize(this);
         // 默认10000
         this.sendThreadPoolQueue = new LinkedBlockingQueue<Runnable>(this.brokerConfig.getSendThreadPoolQueueCapacity());
+        ///100000
         this.pullThreadPoolQueue = new LinkedBlockingQueue<Runnable>(this.brokerConfig.getPullThreadPoolQueueCapacity());
+        //20000
         this.queryThreadPoolQueue = new LinkedBlockingQueue<Runnable>(this.brokerConfig.getQueryThreadPoolQueueCapacity());
+        //1000000
         this.clientManagerThreadPoolQueue = new LinkedBlockingQueue<Runnable>(this.brokerConfig.getClientManagerThreadPoolQueueCapacity());
+        ///1000000
         this.consumerManagerThreadPoolQueue = new LinkedBlockingQueue<Runnable>(this.brokerConfig.getConsumerManagerThreadPoolQueueCapacity());
+        ///50000
         this.heartbeatThreadPoolQueue = new LinkedBlockingQueue<Runnable>(this.brokerConfig.getHeartbeatThreadPoolQueueCapacity());
+        ///100000
         this.endTransactionThreadPoolQueue = new LinkedBlockingQueue<Runnable>(this.brokerConfig.getEndTransactionPoolQueueCapacity());
-
+        /// broker 状态的管理器     broker集群名字 默认是DefaultCluster  这里面其实就是一些指标的统计项
         this.brokerStatsManager = new BrokerStatsManager(this.brokerConfig.getBrokerClusterName());
+
+
+
+
+        //默认 10911
         this.setStoreHost(new InetSocketAddress(this.getBrokerConfig().getBrokerIP1(), this.getNettyServerConfig().getListenPort()));
         // 快速失败
         this.brokerFastFailure = new BrokerFastFailure(this);
@@ -261,13 +284,17 @@ public class BrokerController {
                         this.brokerConfig);
                 // 是否开启dleger
                 if (messageStoreConfig.isEnableDLegerCommitLog()) {
-                    DLedgerRoleChangeHandler roleChangeHandler = new DLedgerRoleChangeHandler(this, (DefaultMessageStore) messageStore);
+                    DLedgerRoleChangeHandler roleChangeHandler =
+                            new DLedgerRoleChangeHandler(this, (DefaultMessageStore) messageStore);
+
+
+
                     ((DLedgerCommitLog)((DefaultMessageStore) messageStore).getCommitLog()).getdLedgerServer().getdLedgerLeaderElector().addRoleChangeHandler(roleChangeHandler);
                 }
                 this.brokerStats = new BrokerStats((DefaultMessageStore) this.messageStore);
                 //load plugin 加载插件
                 MessageStorePluginContext context = new MessageStorePluginContext(messageStoreConfig, brokerStatsManager, messageArrivingListener, brokerConfig);
-                // 其实就是一种把 messageStore 包了一层， 可以理解为修饰者模式
+                // build方法里面其实就是一种把 messageStore 包了一层， 可以理解为修饰者模式
                 this.messageStore = MessageStoreFactory.build(context, this.messageStore);
 
                 this.messageStore.getDispatcherList().addFirst(new CommitLogDispatcherCalcBitMap(this.brokerConfig, this.consumerFilterManager));
@@ -282,9 +309,17 @@ public class BrokerController {
         if (result) {
             // server
             this.remotingServer = new NettyRemotingServer(this.nettyServerConfig, this.clientHousekeepingService);
+
+
             NettyServerConfig fastConfig = (NettyServerConfig) this.nettyServerConfig.clone();
+
+            // fastServer  监听端口是 remotingserver 端口 -2  ，也就是 生产者中，消费者中的 vip channel
             fastConfig.setListenPort(nettyServerConfig.getListenPort() - 2);
+
+
             this.fastRemotingServer = new NettyRemotingServer(fastConfig, this.clientHousekeepingService);
+
+
             this.sendMessageExecutor = new BrokerFixedThreadPoolExecutor(
                 this.brokerConfig.getSendMessageThreadPoolNums(),
                 this.brokerConfig.getSendMessageThreadPoolNums(),
@@ -376,6 +411,7 @@ public class BrokerController {
                         log.error("schedule persist consumer filter error.", e);
                     }
                 }
+                // 10s
             }, 1000 * 10, 1000 * 10, TimeUnit.MILLISECONDS);
 
             this.scheduledExecutorService.scheduleAtFixedRate(new Runnable() {
@@ -501,6 +537,9 @@ public class BrokerController {
         return result;
     }
 
+    /**
+     * 初始化 事务相关的
+     */
     private void initialTransaction() {
         this.transactionalMessageService = ServiceProvider.loadClass(ServiceProvider.TRANSACTION_SERVICE_ID, TransactionalMessageService.class);
         if (null == this.transactionalMessageService) {
@@ -856,7 +895,7 @@ public class BrokerController {
             this.messageStore.start();
         }
 
-        if (this.remotingServer != null) {
+        if (this.remotingServer != null) {// server start
             this.remotingServer.start();
         }
 

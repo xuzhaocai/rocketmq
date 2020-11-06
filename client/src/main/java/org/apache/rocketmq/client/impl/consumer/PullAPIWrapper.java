@@ -184,8 +184,8 @@ public class PullAPIWrapper {
      * @param maxNums
      * @param sysFlag
      * @param commitOffset
-     * @param brokerSuspendMaxTimeMillis
-     * @param timeoutMillis
+     * @param brokerSuspendMaxTimeMillis  broker 暂停最大时间
+     * @param timeoutMillis         timeout
      * @param communicationMode
      * @param pullCallback
      * @return
@@ -200,11 +200,11 @@ public class PullAPIWrapper {
         final String expressionType,
         final long subVersion,
         final long offset,
-        final int maxNums,
+        final int maxNums,/// 每次最多拉取多少
         final int sysFlag,
         final long commitOffset,
         final long brokerSuspendMaxTimeMillis,
-        final long timeoutMillis,
+        final long timeoutMillis,// 超时时间
         final CommunicationMode communicationMode,
         final PullCallback pullCallback
     ) throws MQClientException, RemotingException, MQBrokerException, InterruptedException {
@@ -266,7 +266,10 @@ public class PullAPIWrapper {
             requestHeader.setExpressionType(expressionType);
 
             String brokerAddr = findBrokerResult.getBrokerAddr();
+
+            // 判断时候有class Filter
             if (PullSysFlag.hasClassFilterFlag(sysFlagInner)) {
+                // 就是选择从哪个 filter server 拉取
                 brokerAddr = computPullFromWhichFilterServer(mq.getTopic(), brokerAddr);
             }
 

@@ -27,6 +27,27 @@ import org.apache.rocketmq.common.message.MessageExt;
 
 /**
  * This example shows how to subscribe and consume messages using providing {@link DefaultMQPushConsumer}.
+ *
+ *
+ * 0000
+ * 0001    1
+ * 0010    2
+ * 0011    1 2
+ * 0110    2 3
+ * 0111    1 2 3
+ * 0100    3
+ * 0101    1 3
+ * 1000    4
+ * 1001    1 4
+ * 1010    2 4
+ * 1011    1 2 4
+ * 1101    1 3 4
+ * 1110    2 3 4
+ * 1111    1 2 3 4
+ * 1100    3 4
+ *
+ *
+ *
  */
 public class Consumer {
 
@@ -57,7 +78,7 @@ public class Consumer {
         /*
          * Subscribe one more more topics to consume.
          */
-        consumer.subscribe("TestBroker", "*");
+        consumer.subscribe("TestPushMsgOne", "*");
 
         /*
          *  Register callback to execute on arrival of messages fetched from brokers.

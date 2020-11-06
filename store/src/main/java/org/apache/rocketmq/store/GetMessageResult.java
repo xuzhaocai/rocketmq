@@ -28,10 +28,10 @@ public class GetMessageResult {
 
     private final List<ByteBuffer> messageBufferList = new ArrayList<ByteBuffer>(100);
 
-    private GetMessageStatus status;
-    private long nextBeginOffset;
-    private long minOffset;
-    private long maxOffset;
+    private GetMessageStatus status;// 状态
+    private long nextBeginOffset;  // 下次开始位置
+    private long minOffset;// 最小offset
+    private long maxOffset;// 最大offset
 
     private int bufferTotalSize = 0;
 

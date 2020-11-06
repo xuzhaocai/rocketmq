@@ -63,6 +63,8 @@ public class DispatchRequest {
 
         this.sysFlag = sysFlag;
         this.preparedTransactionOffset = preparedTransactionOffset;
+
+        // success
         this.success = true;
         this.propertiesMap = propertiesMap;
     }

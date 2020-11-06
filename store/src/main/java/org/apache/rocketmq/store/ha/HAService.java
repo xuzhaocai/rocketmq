@@ -60,8 +60,11 @@ public class HAService {
 
     public HAService(final DefaultMessageStore defaultMessageStore) throws IOException {
         this.defaultMessageStore = defaultMessageStore;
+
+
         this.acceptSocketService =
             new AcceptSocketService(defaultMessageStore.getMessageStoreConfig().getHaListenPort());
+
         this.groupTransferService = new GroupTransferService();
         this.haClient = new HAClient();
     }
@@ -155,9 +158,10 @@ public class HAService {
 
     /**
      * Listens to slave connections to create {@link HAConnection}.
+     * 监听 slave 连接的
      */
     class AcceptSocketService extends ServiceThread {
-        private final SocketAddress socketAddressListen;
+        private final SocketAddress socketAddressListen;//  端口
         private ServerSocketChannel serverSocketChannel;
         private Selector selector;
 
@@ -323,12 +327,16 @@ public class HAService {
         }
     }
 
+    /**
+     *
+     * ha 客户端
+     */
     class HAClient extends ServiceThread {
         private static final int READ_MAX_BUFFER_SIZE = 1024 * 1024 * 4;
         private final AtomicReference<String> masterAddress = new AtomicReference<>();
         private final ByteBuffer reportOffset = ByteBuffer.allocate(8);
         private SocketChannel socketChannel;
-        private Selector selector;
+        private Selector selector;// selector
         private long lastWriteTimestamp = System.currentTimeMillis();
 
         private long currentReportedOffset = 0;
@@ -337,6 +345,8 @@ public class HAService {
         private ByteBuffer byteBufferBackup = ByteBuffer.allocate(READ_MAX_BUFFER_SIZE);
 
         public HAClient() throws IOException {
+
+            // 获取selector
             this.selector = RemotingUtil.openSelector();
         }
 

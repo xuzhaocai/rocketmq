@@ -41,25 +41,25 @@ public class Producer {
 
         // 启动producer
         producer.start();
-        // 创建消息
-        Message msg = null;
-        try {
-            msg = new Message("TestBroker" /* Topic */,
-                "TagA" /* Tag */,
-                "Hello RocketMQ".getBytes(RemotingHelper.DEFAULT_CHARSET) /* Message body */
-            );
-            producer.send(msg, new SendCallback() {
-                @Override
-                public void onSuccess(SendResult sendResult) {
-                    System.out.println(sendResult);
-                }
-                @Override
-                public void onException(Throwable e) {
-                    e.printStackTrace();
-                }
-            });
-        } catch (Exception e) {
-            e.printStackTrace();
+        int count=0;
+        while (true) {
+
+            if (count>100)
+                break;
+            // 创建消息
+            Message msg = null;
+            try {
+                msg = new Message("TestPushMsgOne" /* Topic */,
+                        "TagA" /* Tag */,
+                        "Hello RocketMQ".getBytes(RemotingHelper.DEFAULT_CHARSET) /* Message body */
+                );
+                SendResult send = producer.send(msg);
+                System.out.println("count:"+count+",result:"+send);
+                count++;
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
+
         }
     }
 }

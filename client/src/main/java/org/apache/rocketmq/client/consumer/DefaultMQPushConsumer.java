@@ -290,6 +290,8 @@ public class DefaultMQPushConsumer extends ClientConfig implements MQPushConsume
     private int pullBatchSize = 32;
 
     /**
+     *
+     * 每次拉取时是否更新订阅关系
      * Whether update subscription relationship when every pull
      */
     private boolean postSubscriptionWhenPull = false;

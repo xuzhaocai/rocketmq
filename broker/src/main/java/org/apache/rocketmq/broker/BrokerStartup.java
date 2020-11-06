@@ -132,6 +132,8 @@ public class BrokerStartup {
 
                 // 访问消息在内存中比率,默认为40
                 int ratio = messageStoreConfig.getAccessMessageInMemoryMaxRatio() - 10;
+
+                /// slave的话就是30%
                 messageStoreConfig.setAccessMessageInMemoryMaxRatio(ratio);
             }
             // 加载配置文件中 的配置项
@@ -232,7 +234,7 @@ public class BrokerStartup {
                 messageStoreConfig);
             // remember all configs to prevent discard
             controller.getConfiguration().registerConfig(properties);
-            // 初始化
+            // TODO  初始化
             boolean initResult = controller.initialize();
             if (!initResult) {
                 controller.shutdown();

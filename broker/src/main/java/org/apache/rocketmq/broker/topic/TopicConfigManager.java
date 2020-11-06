@@ -40,11 +40,14 @@ import org.apache.rocketmq.common.protocol.body.KVTable;
 import org.apache.rocketmq.common.protocol.body.TopicConfigSerializeWrapper;
 import org.apache.rocketmq.common.sysflag.TopicSysFlag;
 
+/**
+ * topic 配置管理类
+ */
 public class TopicConfigManager extends ConfigManager {
     private static final InternalLogger log = InternalLoggerFactory.getLogger(LoggerName.BROKER_LOGGER_NAME);
     private static final long LOCK_TIMEOUT_MILLIS = 3000;
     private transient final Lock lockTopicConfigTable = new ReentrantLock();
-    // topic 配置表
+    // topic 配置表  key ： topic   value： topicConfig
     private final ConcurrentMap<String, TopicConfig> topicConfigTable =
         new ConcurrentHashMap<String, TopicConfig>(1024);
     private final DataVersion dataVersion = new DataVersion();
@@ -57,14 +60,20 @@ public class TopicConfigManager extends ConfigManager {
     }
 
     public TopicConfigManager(BrokerController brokerController) {
+
+
+        /// 这里其实就是初始化一堆系统级别的topic
         this.brokerController = brokerController;
         {
             // MixAll.SELF_TEST_TOPIC   自己测试topic
             String topic = MixAll.SELF_TEST_TOPIC;
             TopicConfig topicConfig = new TopicConfig(topic);
+
+
             this.systemTopicList.add(topic);
             topicConfig.setReadQueueNums(1);
             topicConfig.setWriteQueueNums(1);
+
             this.topicConfigTable.put(topicConfig.getTopicName(), topicConfig);
         }
         {
