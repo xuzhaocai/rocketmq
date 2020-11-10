@@ -101,8 +101,13 @@ public class ConsumerFilterManager extends ConfigManager {
         return consumerFilterData;
     }
 
+    /**
+     * 注册
+     * @param consumerGroup
+     * @param subList
+     */
     public void register(final String consumerGroup, final Collection<SubscriptionData> subList) {
-        for (SubscriptionData subscriptionData : subList) {
+        for (SubscriptionData subscriptionData : subList) {// 循环注册
             register(
                 subscriptionData.getTopic(),
                 consumerGroup,
@@ -134,9 +139,18 @@ public class ConsumerFilterManager extends ConfigManager {
         }
     }
 
+    /**
+     * 注册
+     * @param topic  topic
+     * @param consumerGroup  消费者组
+     * @param expression
+     * @param type
+     * @param clientVersion
+     * @return
+     */
     public boolean register(final String topic, final String consumerGroup, final String expression,
         final String type, final long clientVersion) {
-        if (ExpressionType.isTagType(type)) {
+        if (ExpressionType.isTagType(type)) {/// 如果是tag 过滤的话就算了
             return false;
         }
 

@@ -596,6 +596,9 @@ public class MQClientInstance {
                             }
 
                             try {
+
+
+                                /// 获得一个version
                                 int version = this.mQClientAPIImpl.sendHearbeat(addr, heartbeatData, 3000);
                                 if (!this.brokerVersionTable.containsKey(brokerName)) {
                                     this.brokerVersionTable.put(brokerName, new HashMap<String, Integer>(4));

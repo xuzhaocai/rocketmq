@@ -35,6 +35,10 @@ import org.apache.rocketmq.logging.InternalLogger;
 import org.apache.rocketmq.logging.InternalLoggerFactory;
 import org.apache.rocketmq.remoting.common.RemotingUtil;
 
+
+/**
+ * filter server
+ */
 public class FilterServerManager {
 
     public static final long FILTER_SERVER_MAX_IDLE_TIME_MILLS = 30000;
@@ -61,18 +65,27 @@ public class FilterServerManager {
                     log.error("", e);
                 }
             }
+
+            // 30s
         }, 1000 * 5, 1000 * 30, TimeUnit.MILLISECONDS);
     }
 
     public void createFilterServer() {
+
+        // 就是剩下几个没有构建
         int more =
             this.brokerController.getBrokerConfig().getFilterServerNums() - this.filterServerTable.size();
         String cmd = this.buildStartCommand();
+
+        // 循环构建
         for (int i = 0; i < more; i++) {
+
+
+            ///执行shell命令
             FilterServerUtil.callShell(cmd, log);
         }
     }
-
+    // 构建启动命令
     private String buildStartCommand() {
         String config = "";
         if (BrokerStartup.configFile != null) {
@@ -134,6 +147,10 @@ public class FilterServerManager {
         }
     }
 
+    /**
+     * 构建 filter server list
+     * @return
+     */
     public List<String> buildNewFilterServerList() {
         List<String> addr = new ArrayList<>();
         Iterator<Entry<Channel, FilterServerInfo>> it = this.filterServerTable.entrySet().iterator();

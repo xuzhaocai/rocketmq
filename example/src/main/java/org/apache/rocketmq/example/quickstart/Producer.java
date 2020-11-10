@@ -53,8 +53,18 @@ public class Producer {
                         "TagA" /* Tag */,
                         "Hello RocketMQ".getBytes(RemotingHelper.DEFAULT_CHARSET) /* Message body */
                 );
-                SendResult send = producer.send(msg);
-                System.out.println("count:"+count+",result:"+send);
+               producer.send(msg, new SendCallback() {
+                    @Override
+                    public void onSuccess(SendResult sendResult) {
+
+                    }
+
+                    @Override
+                    public void onException(Throwable e) {
+
+                    }
+                });
+               /// System.out.println("count:"+count+",result:"+send);
                 count++;
             } catch (Exception e) {
                 e.printStackTrace();

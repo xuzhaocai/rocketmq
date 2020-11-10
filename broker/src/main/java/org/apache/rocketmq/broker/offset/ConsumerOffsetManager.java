@@ -33,6 +33,11 @@ import org.apache.rocketmq.logging.InternalLogger;
 import org.apache.rocketmq.logging.InternalLoggerFactory;
 import org.apache.rocketmq.remoting.protocol.RemotingSerializable;
 
+
+/**
+ *
+ * 维护consumeOffset的管理器
+ */
 public class ConsumerOffsetManager extends ConfigManager {
     private static final InternalLogger log = InternalLoggerFactory.getLogger(LoggerName.BROKER_LOGGER_NAME);
     private static final String TOPIC_GROUP_SEPARATOR = "@";// topic 与group 的一个分割符
@@ -118,6 +123,14 @@ public class ConsumerOffsetManager extends ConfigManager {
         return groups;
     }
 
+    /**
+     * 提交offset
+     * @param clientHost  客户端的 地址
+     * @param group   消费者组信息
+     * @param topic  topic
+     * @param queueId  queueId
+     * @param offset  提交的offset
+     */
     public void commitOffset(final String clientHost, final String group, final String topic, final int queueId,
         final long offset) {
         // topic@group
@@ -125,7 +138,15 @@ public class ConsumerOffsetManager extends ConfigManager {
         this.commitOffset(clientHost, key, queueId, offset);
     }
 
+    /**
+     *  提交offset
+     * @param clientHost
+     * @param key
+     * @param queueId
+     * @param offset
+     */
     private void commitOffset(final String clientHost, final String key, final int queueId, final long offset) {
+
         ConcurrentMap<Integer, Long> map = this.offsetTable.get(key);
         if (null == map) {
             map = new ConcurrentHashMap<Integer, Long>(32);
@@ -155,7 +176,7 @@ public class ConsumerOffsetManager extends ConfigManager {
     public String encode() {
         return this.encode(false);
     }
-
+    /// consumerOffset.json
     @Override
     public String configFilePath() {
         return BrokerPathConfigHelper.getConsumerOffsetPath(this.brokerController.getMessageStoreConfig().getStorePathRootDir());

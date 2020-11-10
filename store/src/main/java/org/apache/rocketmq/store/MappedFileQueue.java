@@ -144,6 +144,10 @@ public class MappedFileQueue {
         }
     }
 
+    /**
+     * 加载MappedFile
+     * @return
+     */
     public boolean load() {
         File dir = new File(this.storePath);
         File[] files = dir.listFiles();
@@ -209,12 +213,19 @@ public class MappedFileQueue {
         }
 
         if (createOffset != -1 && needCreate) {// 需要创建
+
+
+            // 下一个MappedFile
             String nextFilePath = this.storePath + File.separator + UtilAll.offset2FileName(createOffset);
+
+            // 下下个MappedFile
             String nextNextFilePath = this.storePath + File.separator
                 + UtilAll.offset2FileName(createOffset + this.mappedFileSize);
             MappedFile mappedFile = null;
 
             if (this.allocateMappedFileService != null) {// 有这个申请MappedFile的服务就用这个服务申请
+
+                // 这个把下下个也给创建
                 mappedFile = this.allocateMappedFileService.putRequestAndReturnMappedFile(nextFilePath,
                     nextNextFilePath, this.mappedFileSize);
             } else {
@@ -435,8 +446,12 @@ public class MappedFileQueue {
         boolean result = true;                        // flushedWhere 这个就是记录了它刷到哪里了
         MappedFile mappedFile = this.findMappedFileByOffset(this.flushedWhere, this.flushedWhere == 0);// 找到对应的mappedFile
         if (mappedFile != null) {
-            long tmpTimeStamp = mappedFile.getStoreTimestamp();// 获取一个写入时间戳
+            long tmpTimeStamp = mappedFile.getStoreTimestamp();// 获取最近一次写入时间戳
+
+            // 返回的是刷到哪个位置了
             int offset = mappedFile.flush(flushLeastPages);
+
+            // commitlog刷到哪了
             long where = mappedFile.getFileFromOffset() + offset;
             result = where == this.flushedWhere;
             this.flushedWhere = where;
@@ -444,7 +459,6 @@ public class MappedFileQueue {
                 this.storeTimestamp = tmpTimeStamp;
             }
         }
-
         return result;
     }
 

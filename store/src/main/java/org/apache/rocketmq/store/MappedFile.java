@@ -291,9 +291,13 @@ public class MappedFile extends ReferenceResource {
      * @return The current flushed position  执行刷盘操作
      */
     public int flush(final int flushLeastPages) {
-        if (this.isAbleToFlush(flushLeastPages)) {// 是否有能力去刷盘
+        if (this.isAbleToFlush(flushLeastPages)) {// 是否可以去刷盘
             if (this.hold()) {
+
+
+                // 获取这个MappedFile 现在写的一个位置
                 int value = getReadPosition();
+
 
                 try {// 这里意思是要么刷fileChannel的 要么是刷 mappedByteBuffer里面的数据
                     //We only append data to fileChannel or mappedByteBuffer, never both. 我们只向fileChannel或mappedByteBuffer添加数据，而从不同时向两者添加数据
@@ -341,6 +345,8 @@ public class MappedFile extends ReferenceResource {
 
     protected void commit0(final int commitLeastPages) {
         int writePos = this.wrotePosition.get();
+
+        /// 最后一次提交位置
         int lastCommittedPosition = this.committedPosition.get();
 
         if (writePos - this.committedPosition.get() > 0) {
@@ -348,6 +354,8 @@ public class MappedFile extends ReferenceResource {
                 ByteBuffer byteBuffer = writeBuffer.slice();
                 byteBuffer.position(lastCommittedPosition);
                 byteBuffer.limit(writePos);
+
+
                 this.fileChannel.position(lastCommittedPosition);
                 this.fileChannel.write(byteBuffer);
                 this.committedPosition.set(writePos);
@@ -356,19 +364,18 @@ public class MappedFile extends ReferenceResource {
             }
         }
     }
-    // 判断
+    // 判断是否可以刷盘
     private boolean isAbleToFlush(final int flushLeastPages) {
         int flush = this.flushedPosition.get();// 获取刷盘的位置
         int write = getReadPosition();// 获取读的一个位置
-
         if (this.isFull()) {// 判断是否满了
             return true;
         }
-
         if (flushLeastPages > 0) {
+            // OS_PAGE_SIZE  4096
             return ((write / OS_PAGE_SIZE) - (flush / OS_PAGE_SIZE)) >= flushLeastPages;
         }
-
+        // 写的位置 大于 刷的
         return write > flush;
     }
 
@@ -430,10 +437,8 @@ public class MappedFile extends ReferenceResource {
     }
     // 根据位置读取
     public SelectMappedBufferResult selectMappedBuffer(int pos) {
-
         /// 获取这个MappedFile里面的一个read position ，其实就是这个MappedFile 的一个可读位置
         int readPosition = getReadPosition();
-
         /// 你读的这个位置要小于 可以读的位置
         if (pos < readPosition && pos >= 0) {
             if (this.hold()) {
@@ -445,7 +450,6 @@ public class MappedFile extends ReferenceResource {
                 return new SelectMappedBufferResult(this.fileFromOffset + pos, byteBufferNew, size, this);
             }
         }
-
         return null;
     }
 

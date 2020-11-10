@@ -540,7 +540,7 @@ public class MQClientAPIImpl {
         final SendCallback sendCallback,
         final TopicPublishInfo topicPublishInfo,
         final MQClientInstance instance,
-        final int timesTotal,
+        final int timesTotal,// 重试次数 ，默认是2次
         final AtomicInteger curTimes,
         final Exception e,
         final SendMessageContext context,

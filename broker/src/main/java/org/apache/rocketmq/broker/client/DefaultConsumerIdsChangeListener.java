@@ -37,12 +37,14 @@ public class DefaultConsumerIdsChangeListener implements ConsumerIdsChangeListen
             return;
         }
         switch (event) {
-            case CHANGE:
+            case CHANGE:/// 发生改变 通知
                 if (args == null || args.length < 1) {
                     return;
                 }
                 List<Channel> channels = (List<Channel>) args[0];
                 if (channels != null && brokerController.getBrokerConfig().isNotifyConsumerIdsChangedEnable()) {
+
+                    // 挨个通知consumer 说consumer 改变了
                     for (Channel chl : channels) {
                         this.brokerController.getBroker2Client().notifyConsumerIdsChanged(chl, group);
                     }
@@ -51,11 +53,16 @@ public class DefaultConsumerIdsChangeListener implements ConsumerIdsChangeListen
             case UNREGISTER:
                 this.brokerController.getConsumerFilterManager().unRegister(group);
                 break;
+
+                // 注册
             case REGISTER:
                 if (args == null || args.length < 1) {
                     return;
                 }
                 Collection<SubscriptionData> subscriptionDataList = (Collection<SubscriptionData>) args[0];
+
+
+                // 向 consumerFilterManager 注册
                 this.brokerController.getConsumerFilterManager().register(group, subscriptionDataList);
                 break;
             default:

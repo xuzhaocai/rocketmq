@@ -95,10 +95,24 @@ public class ConsumerManager {
         }
     }
 
+    /**
+     * 注册consumer
+     * @param group
+     * @param clientChannelInfo
+     * @param consumeType
+     * @param messageModel
+     * @param consumeFromWhere
+     * @param subList
+     * @param isNotifyConsumerIdsChangedEnable
+     * @return
+     */
     public boolean registerConsumer(final String group, final ClientChannelInfo clientChannelInfo,
         ConsumeType consumeType, MessageModel messageModel, ConsumeFromWhere consumeFromWhere,
         final Set<SubscriptionData> subList, boolean isNotifyConsumerIdsChangedEnable) {
 
+
+
+        //根据消费者组获取ConsumerGroupInfo 信息，没有就创建   ， 一个group 维护一个这个信息
         ConsumerGroupInfo consumerGroupInfo = this.consumerTable.get(group);
         if (null == consumerGroupInfo) {
             ConsumerGroupInfo tmp = new ConsumerGroupInfo(group, consumeType, messageModel, consumeFromWhere);
@@ -106,9 +120,14 @@ public class ConsumerManager {
             consumerGroupInfo = prev != null ? prev : tmp;
         }
 
+
+
+        // 这个就是新添加channel
         boolean r1 =
+                /// 更新channel
             consumerGroupInfo.updateChannel(clientChannelInfo, consumeType, messageModel,
                 consumeFromWhere);
+            // 更新consumerGroupInfo
         boolean r2 = consumerGroupInfo.updateSubscription(subList);
 
         if (r1 || r2) {
@@ -116,7 +135,7 @@ public class ConsumerManager {
                 this.consumerIdsChangeListener.handle(ConsumerGroupEvent.CHANGE, group, consumerGroupInfo.getAllChannel());
             }
         }
-
+        // 通知
         this.consumerIdsChangeListener.handle(ConsumerGroupEvent.REGISTER, group, subList);
 
         return r1 || r2;

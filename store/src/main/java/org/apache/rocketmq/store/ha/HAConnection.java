@@ -42,12 +42,17 @@ public class HAConnection {
     public HAConnection(final HAService haService, final SocketChannel socketChannel) throws IOException {
         this.haService = haService;
         this.socketChannel = socketChannel;
+        // 获取远端addr
         this.clientAddr = this.socketChannel.socket().getRemoteSocketAddress().toString();
+        // 设置非阻塞
         this.socketChannel.configureBlocking(false);
+
         this.socketChannel.socket().setSoLinger(false, -1);
         this.socketChannel.socket().setTcpNoDelay(true);
         this.socketChannel.socket().setReceiveBufferSize(1024 * 64);
         this.socketChannel.socket().setSendBufferSize(1024 * 64);
+
+
         this.writeSocketService = new WriteSocketService(this.socketChannel);
         this.readSocketService = new ReadSocketService(this.socketChannel);
         this.haService.getConnectionCount().incrementAndGet();

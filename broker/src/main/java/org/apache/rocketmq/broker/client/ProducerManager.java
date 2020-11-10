@@ -131,12 +131,18 @@ public class ProducerManager {
         }
     }
 
+    /**
+     * 注册消息生产者
+     * @param group
+     * @param clientChannelInfo
+     */
     public void registerProducer(final String group, final ClientChannelInfo clientChannelInfo) {
         try {
             ClientChannelInfo clientChannelInfoFound = null;
 
             if (this.groupChannelLock.tryLock(LOCK_TIMEOUT_MILLIS, TimeUnit.MILLISECONDS)) {
                 try {
+                    /// 就是维护组channel 表，如果有不用管了，如果没有进行注册
                     HashMap<Channel, ClientChannelInfo> channelTable = this.groupChannelTable.get(group);
                     if (null == channelTable) {
                         channelTable = new HashMap<>();

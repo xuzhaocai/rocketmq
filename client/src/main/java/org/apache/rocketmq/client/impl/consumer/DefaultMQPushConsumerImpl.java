@@ -625,6 +625,8 @@ public class DefaultMQPushConsumerImpl implements MQConsumerInner {
                 // 检查一些配置
                 this.checkConfig();
 
+
+
                 this.copySubscription();
                 // 如果 消息模式是 cluster 的话 ，如果instanceId是默认的话，就设置成pid
                 if (this.defaultMQPushConsumer.getMessageModel() == MessageModel.CLUSTERING) {
@@ -693,6 +695,11 @@ public class DefaultMQPushConsumerImpl implements MQConsumerInner {
                 }
                 // 启动
                 this.consumeMessageService.start();
+
+
+
+
+
                 // 注册 consumer
                 boolean registerOK = mQClientFactory.registerConsumer(this.defaultMQPushConsumer.getConsumerGroup(), this);
                 // 没有注册成功的话，就抛异常了

@@ -44,6 +44,9 @@ public class ClientHousekeepingService implements ChannelEventListener {
             @Override
             public void run() {
                 try {
+
+
+                    /// 扫描异常的channel
                     ClientHousekeepingService.this.scanExceptionChannel();
                 } catch (Throwable e) {
                     log.error("Error occurred when scan not active client channels.", e);
@@ -52,7 +55,14 @@ public class ClientHousekeepingService implements ChannelEventListener {
         }, 1000 * 10, 1000 * 10, TimeUnit.MILLISECONDS);
     }
 
+    /**
+     *
+     * 扫描异常的channel
+     */
     private void scanExceptionChannel() {
+
+
+
         this.brokerController.getProducerManager().scanNotActiveChannel();
         this.brokerController.getConsumerManager().scanNotActiveChannel();
         this.brokerController.getFilterServerManager().scanNotActiveChannel();

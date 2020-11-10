@@ -54,7 +54,7 @@ public class ClientManageProcessor implements NettyRequestProcessor {
     public RemotingCommand processRequest(ChannelHandlerContext ctx, RemotingCommand request)
         throws RemotingCommandException {
         switch (request.getCode()) {
-            case RequestCode.HEART_BEAT:
+            case RequestCode.HEART_BEAT:// 心跳处理
                 return this.heartBeat(ctx, request);
             case RequestCode.UNREGISTER_CLIENT:
                 return this.unregisterClient(ctx, request);
@@ -71,9 +71,18 @@ public class ClientManageProcessor implements NettyRequestProcessor {
         return false;
     }
 
+    /**
+     * 处理心跳
+     * @param ctx
+     * @param request
+     * @return
+     */
     public RemotingCommand heartBeat(ChannelHandlerContext ctx, RemotingCommand request) {
         RemotingCommand response = RemotingCommand.createResponseCommand(null);
         HeartbeatData heartbeatData = HeartbeatData.decode(request.getBody(), HeartbeatData.class);
+
+
+        // 封装客户端channel
         ClientChannelInfo clientChannelInfo = new ClientChannelInfo(
             ctx.channel(),
             heartbeatData.getClientID(),
@@ -81,10 +90,19 @@ public class ClientManageProcessor implements NettyRequestProcessor {
             request.getVersion()
         );
 
+
+
+        /// 遍历consumerData
         for (ConsumerData data : heartbeatData.getConsumerDataSet()) {
+
+
+
             SubscriptionGroupConfig subscriptionGroupConfig =
                 this.brokerController.getSubscriptionGroupManager().findSubscriptionGroupConfig(
                     data.getGroupName());
+
+
+
             boolean isNotifyConsumerIdsChangedEnable = true;
             if (null != subscriptionGroupConfig) {
                 isNotifyConsumerIdsChangedEnable = subscriptionGroupConfig.isNotifyConsumerIdsChangedEnable();
@@ -92,6 +110,9 @@ public class ClientManageProcessor implements NettyRequestProcessor {
                 if (data.isUnitMode()) {
                     topicSysFlag = TopicSysFlag.buildSysFlag(false, true);
                 }
+
+
+
                 String newTopic = MixAll.getRetryTopic(data.getGroupName());
                 this.brokerController.getTopicConfigManager().createTopicInSendMessageBackMethod(
                     newTopic,
@@ -99,6 +120,9 @@ public class ClientManageProcessor implements NettyRequestProcessor {
                     PermName.PERM_WRITE | PermName.PERM_READ, topicSysFlag);
             }
 
+
+
+            //  注册 consumer
             boolean changed = this.brokerController.getConsumerManager().registerConsumer(
                 data.getGroupName(),
                 clientChannelInfo,
@@ -109,6 +133,9 @@ public class ClientManageProcessor implements NettyRequestProcessor {
                 isNotifyConsumerIdsChangedEnable
             );
 
+
+
+            // 有改变，然后就打印日志
             if (changed) {
                 log.info("registerConsumer info changed {} {}",
                     data.toString(),
@@ -117,7 +144,11 @@ public class ClientManageProcessor implements NettyRequestProcessor {
             }
         }
 
+        //循环注册producer
         for (ProducerData data : heartbeatData.getProducerDataSet()) {
+
+
+
             this.brokerController.getProducerManager().registerProducer(data.getGroupName(),
                 clientChannelInfo);
         }

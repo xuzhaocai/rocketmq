@@ -391,18 +391,14 @@ public class ConsumeQueue {
      */
     public void putMessagePositionInfoWrapper(DispatchRequest request) {
         final int maxRetries = 30;
-
         /// 是否 可以写
         boolean canWrite = this.defaultMessageStore.getRunningFlags().isCQWriteable();
         for (int i = 0; i < maxRetries && canWrite; i++) {
             // 获取tag
             long tagsCode = request.getTagsCode();
-
             // 是否写入扩展的一些信息 默认是false的，也就是默认这一块是不跑的
             if (isExtWriteEnable()) {
                 ConsumeQueueExt.CqExtUnit cqExtUnit = new ConsumeQueueExt.CqExtUnit();
-
-
                 cqExtUnit.setFilterBitMap(request.getBitMap());
                 /// 设置写入时间
                 cqExtUnit.setMsgStoreTime(request.getStoreTimestamp());
@@ -416,14 +412,9 @@ public class ConsumeQueue {
                         topic, queueId, request.getCommitLogOffset());
                 }
             }
-
-
-
             // 写入ConsumeQueue 队列中
             boolean result = this.putMessagePositionInfo(request.getCommitLogOffset(),
                 request.getMsgSize(), tagsCode, request.getConsumeQueueOffset());
-
-
             // 写入成功
             if (result) {
 
@@ -442,7 +433,6 @@ public class ConsumeQueue {
                 }
             }
         }
-
         // XXX: warn and notify me
         log.error("[BUG]consume queue can not write, {} {}", this.topic, this.queueId);
         this.defaultMessageStore.getRunningFlags().makeLogicsQueueError();
@@ -458,7 +448,6 @@ public class ConsumeQueue {
      */
     private boolean putMessagePositionInfo(final long offset, final int size, final long tagsCode,
         final long cqOffset) {
-
         if (offset + size <= this.maxPhysicOffset) {
             log.warn("Maybe try to build consume queue repeatedly maxPhysicOffset={} phyOffset={}", maxPhysicOffset, offset);
             return true;
@@ -469,8 +458,6 @@ public class ConsumeQueue {
         this.byteBufferIndex.putLong(offset);//8
         this.byteBufferIndex.putInt(size);//4
         this.byteBufferIndex.putLong(tagsCode);//8
-
-
         // 这个就是根据consumeQueue offset  计算在 ConsumeQueue 的位置
         final long expectLogicOffset = cqOffset * CQ_STORE_UNIT_SIZE;
         // 获取MappedFile
@@ -488,11 +475,8 @@ public class ConsumeQueue {
                 log.info("fill pre blank space " + mappedFile.getFileName() + " " + expectLogicOffset + " "
                     + mappedFile.getWrotePosition());
             }
-
-
             //不是0
             if (cqOffset != 0) {
-
                 // 当前在这个consumeQueue中的offset
                 long currentLogicOffset = mappedFile.getWrotePosition() + mappedFile.getFileFromOffset();
                 // 你现在要插入的offset 比  当前在这个consumeQueue中的offset要小，这个就是说明 你在找之前的位置插入，但是人家都已经有东西了
@@ -517,7 +501,6 @@ public class ConsumeQueue {
 
             // 设置最大的那个 物理offset
             this.maxPhysicOffset = offset + size;
-
             // 追加消息
             return mappedFile.appendMessage(this.byteBufferIndex.array());
         }

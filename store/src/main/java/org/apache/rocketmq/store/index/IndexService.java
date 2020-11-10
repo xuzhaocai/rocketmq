@@ -96,6 +96,8 @@ public class IndexService {
         return true;
     }
 
+///  KEY `idx_full` (`full_time_driver`,`driver_type`,`self_support_driver`,`statistics_date`,`register_city`,`driver_company_id`,`online_time`,`finished_num`,`finished_oredrs`,`peak_online_time`) USING BTREE
+
     public void deleteExpiredFile(long offset) {
         Object[] files = null;
         try {
@@ -276,7 +278,7 @@ public class IndexService {
             log.error("build index error, stop building index");
         }
     }
-    // put key
+    // put key 就是将key 放到索引文件中
     private IndexFile putKey(IndexFile indexFile, DispatchRequest msg, String idxKey) {
 
 

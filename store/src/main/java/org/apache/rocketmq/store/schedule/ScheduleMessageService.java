@@ -165,16 +165,23 @@ public class ScheduleMessageService extends ConfigManager {
         result = result && this.parseDelayLevel();
         return result;
     }
-    // config 文件路径
+    // config 文件路径   store/config/delayOffset.json
     @Override
     public String configFilePath() {
         return StorePathConfigHelper.getDelayOffsetStorePath(this.defaultMessageStore.getMessageStoreConfig()
             .getStorePathRootDir());
     }
 
+    /**
+     * 进行解码
+     * @param jsonString 存储在文件里面的 json串
+     */
     @Override
     public void decode(String jsonString) {
         if (jsonString != null) {
+
+
+
             DelayOffsetSerializeWrapper delayOffsetSerializeWrapper =
                 DelayOffsetSerializeWrapper.fromJson(jsonString, DelayOffsetSerializeWrapper.class);
             if (delayOffsetSerializeWrapper != null) {

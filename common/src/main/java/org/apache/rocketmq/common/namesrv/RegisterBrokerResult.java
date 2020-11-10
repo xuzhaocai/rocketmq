@@ -19,10 +19,14 @@ package org.apache.rocketmq.common.namesrv;
 
 import org.apache.rocketmq.common.protocol.body.KVTable;
 
+
+/**
+ * 注册broker ，然后nameserv 返回内容封装实体
+ */
 public class RegisterBrokerResult {
-    private String haServerAddr;
-    private String masterAddr;
-    private KVTable kvTable;
+    private String haServerAddr;  // ha地址
+    private String masterAddr;  // master 地址
+    private KVTable kvTable;  // kv 其实就是map
 
     public String getHaServerAddr() {
         return haServerAddr;

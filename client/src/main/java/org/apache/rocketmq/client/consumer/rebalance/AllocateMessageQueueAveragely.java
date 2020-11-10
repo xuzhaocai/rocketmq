@@ -44,7 +44,6 @@ public class AllocateMessageQueueAveragely implements AllocateMessageQueueStrate
         List<String> cidAll) {
 
 
-
         //对当前clientId做检查
         if (currentCID == null || currentCID.length() < 1) {
             throw new IllegalArgumentException("currentCID is empty");

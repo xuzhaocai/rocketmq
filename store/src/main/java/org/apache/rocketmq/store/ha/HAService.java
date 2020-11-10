@@ -44,7 +44,7 @@ public class HAService {
     private static final InternalLogger log = InternalLoggerFactory.getLogger(LoggerName.STORE_LOGGER_NAME);
 
     private final AtomicInteger connectionCount = new AtomicInteger(0);
-
+    // 维护连接集合
     private final List<HAConnection> connectionList = new LinkedList<>();
 
     private final AcceptSocketService acceptSocketService;
@@ -61,11 +61,13 @@ public class HAService {
     public HAService(final DefaultMessageStore defaultMessageStore) throws IOException {
         this.defaultMessageStore = defaultMessageStore;
 
-
+        // 创建accpetSocket  接收连接，进行socket连接
         this.acceptSocketService =
             new AcceptSocketService(defaultMessageStore.getMessageStoreConfig().getHaListenPort());
-
+        // 组 传输服务
         this.groupTransferService = new GroupTransferService();
+
+        // 创建client
         this.haClient = new HAClient();
     }
 
@@ -108,9 +110,19 @@ public class HAService {
     // this.groupTransferService.notifyTransferSome();
     // }
 
+
+    /**
+     * 启动
+     * @throws Exception
+     */
     public void start() throws Exception {
+
+        // 创建serverSocketChannel
         this.acceptSocketService.beginAccept();
+
         this.acceptSocketService.start();
+
+
         this.groupTransferService.start();
         this.haClient.start();
     }
@@ -171,6 +183,7 @@ public class HAService {
 
         /**
          * Starts listening to slave connections.
+         * 使用了java nio
          *
          * @throws Exception If fails.
          */
@@ -199,6 +212,10 @@ public class HAService {
 
         /**
          * {@inheritDoc}
+         *
+         * 运行
+         *
+         * 这里其实就是操作java nio
          */
         @Override
         public void run() {
@@ -219,7 +236,9 @@ public class HAService {
                                         + sc.socket().getRemoteSocketAddress());
 
                                     try {
+                                        /// 创建连接
                                         HAConnection conn = new HAConnection(HAService.this, sc);
+                                        // 启动连接
                                         conn.start();
                                         HAService.this.addConnection(conn);
                                     } catch (Exception e) {

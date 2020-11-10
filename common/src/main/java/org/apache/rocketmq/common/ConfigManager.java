@@ -38,7 +38,7 @@ public abstract class ConfigManager {
             fileName = this.configFilePath();
             //将 json 格式的文件转成 加载成json 字符串
             String jsonString = MixAll.file2String(fileName);
-            // 没有就加载 bak 文件就是配置文件.bak
+            // 没有就加载 bak 文件就是配置文件.bak 加载bak 文件
             if (null == jsonString || jsonString.length() == 0) {
                 return this.loadBak();
             } else {
@@ -74,12 +74,15 @@ public abstract class ConfigManager {
     }
     // 反序列化
     public abstract void decode(final String jsonString);
-
+    // 将 序列化的数据写到文件中， 做持久话操作
     public synchronized void persist() {
         String jsonString = this.encode(true);
         if (jsonString != null) {
             String fileName = this.configFilePath();
             try {
+
+
+                /// 写到 文件中
                 MixAll.string2File(jsonString, fileName);
             } catch (IOException e) {
                 log.error("persist file " + fileName + " exception", e);

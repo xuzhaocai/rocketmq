@@ -76,14 +76,12 @@ public class SendMessageProcessor extends AbstractSendMessageProcessor implement
                 // trace
                 mqtraceContext = buildMsgContext(ctx, requestHeader);
                 this.executeSendMessageHookBefore(ctx, request, mqtraceContext);
-
                 RemotingCommand response;
                 if (requestHeader.isBatch()) {// 判断是不是一批消息
                     response = this.sendBatchMessage(ctx, request, mqtraceContext, requestHeader);
                 } else {
                     response = this.sendMessage(ctx, request, mqtraceContext, requestHeader);
                 }
-
                 this.executeSendMessageHookAfter(response, mqtraceContext);
                 return response;
         }
@@ -332,7 +330,6 @@ public class SendMessageProcessor extends AbstractSendMessageProcessor implement
         if (queueIdInt < 0) {// 小于0的话，重新给分配个
             queueIdInt = Math.abs(this.random.nextInt() % 99999999) % topicConfig.getWriteQueueNums();
         }
-
         MessageExtBrokerInner msgInner = new MessageExtBrokerInner();
         msgInner.setTopic(requestHeader.getTopic());
         msgInner.setQueueId(queueIdInt);
@@ -340,7 +337,6 @@ public class SendMessageProcessor extends AbstractSendMessageProcessor implement
         if (!handleRetryAndDLQ(requestHeader, response, request, msgInner, topicConfig)) {
             return response;
         }
-
         msgInner.setBody(body);
         msgInner.setFlag(requestHeader.getFlag());
         MessageAccessor.setProperties(msgInner, MessageDecoder.string2messageProperties(requestHeader.getProperties()));
@@ -351,13 +347,9 @@ public class SendMessageProcessor extends AbstractSendMessageProcessor implement
         msgInner.setReconsumeTimes(requestHeader.getReconsumeTimes() == null ? 0 : requestHeader.getReconsumeTimes());
         PutMessageResult putMessageResult = null;
         Map<String, String> oriProps = MessageDecoder.string2messageProperties(requestHeader.getProperties());
-
-
         // 处理事务消息
         String traFlag = oriProps.get(MessageConst.PROPERTY_TRANSACTION_PREPARED);
-
         if (traFlag != null && Boolean.parseBoolean(traFlag)) {
-
             if (this.brokerController.getBrokerConfig().isRejectTransactionMessage()) {
                 response.setCode(ResponseCode.NO_PERMISSION);
                 response.setRemark(
@@ -367,7 +359,6 @@ public class SendMessageProcessor extends AbstractSendMessageProcessor implement
             }
             putMessageResult = this.brokerController.getTransactionalMessageService().prepareMessage(msgInner);
         } else {
-
             /// 普通消息存储
             // putMessage  向存储器---》写入消息
             putMessageResult = this.brokerController.getMessageStore().putMessage(msgInner);

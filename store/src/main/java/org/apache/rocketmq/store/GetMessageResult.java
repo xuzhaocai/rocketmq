@@ -82,10 +82,20 @@ public class GetMessageResult {
         return messageBufferList;
     }
 
+
+    /**
+     * 添加消息
+     * @param mapedBuffer
+     */
     public void addMessage(final SelectMappedBufferResult mapedBuffer) {
         this.messageMapedList.add(mapedBuffer);
         this.messageBufferList.add(mapedBuffer.getByteBuffer());
+
+        // 总大小
         this.bufferTotalSize += mapedBuffer.getSize();
+
+
+        ///TODO 这个是什么鬼东西
         this.msgCount4Commercial += (int) Math.ceil(
             mapedBuffer.getSize() / BrokerStatsManager.SIZE_PER_COUNT);
     }

@@ -34,17 +34,19 @@ import org.apache.rocketmq.common.protocol.heartbeat.SubscriptionData;
 
 public class ConsumerGroupInfo {
     private static final InternalLogger log = InternalLoggerFactory.getLogger(LoggerName.BROKER_LOGGER_NAME);
-    private final String groupName;
+    private final String groupName;/// 消费者组名
 
     // topic ---》 订阅信息
     private final ConcurrentMap<String/* Topic */, SubscriptionData> subscriptionTable =
         new ConcurrentHashMap<String, SubscriptionData>();
+
+
     private final ConcurrentMap<Channel, ClientChannelInfo> channelInfoTable =
         new ConcurrentHashMap<Channel, ClientChannelInfo>(16);
     private volatile ConsumeType consumeType;
     private volatile MessageModel messageModel;
     private volatile ConsumeFromWhere consumeFromWhere;
-    private volatile long lastUpdateTimestamp = System.currentTimeMillis();
+    private volatile long lastUpdateTimestamp = System.currentTimeMillis();// 最后更改信息
 
     public ConsumerGroupInfo(String groupName, ConsumeType consumeType, MessageModel messageModel,
         ConsumeFromWhere consumeFromWhere) {
@@ -115,34 +117,52 @@ public class ConsumerGroupInfo {
         return false;
     }
 
+    /**
+     * 更新channel
+     * @param infoNew
+     * @param consumeType
+     * @param messageModel
+     * @param consumeFromWhere
+     * @return
+     */
     public boolean updateChannel(final ClientChannelInfo infoNew, ConsumeType consumeType,
         MessageModel messageModel, ConsumeFromWhere consumeFromWhere) {
         boolean updated = false;
         this.consumeType = consumeType;
         this.messageModel = messageModel;
         this.consumeFromWhere = consumeFromWhere;
-
+        // 根据channel获取ClientChannelInfo 对象
         ClientChannelInfo infoOld = this.channelInfoTable.get(infoNew.getChannel());
-        if (null == infoOld) {
+        if (null == infoOld) {/// 这个就说明之前没有过这个consumer ，是个新添加的
+            // 没有的话直接塞进去
             ClientChannelInfo prev = this.channelInfoTable.put(infoNew.getChannel(), infoNew);
             if (null == prev) {
                 log.info("new consumer connected, group: {} {} {} channel: {}", this.groupName, consumeType,
                     messageModel, infoNew.toString());
+
+
+                /// 更新
                 updated = true;
             }
 
             infoOld = infoNew;
         } else {
+
+            /// channel 一样，然后clientID变了
             if (!infoOld.getClientId().equals(infoNew.getClientId())) {
                 log.error("[BUG] consumer channel exist in broker, but clientId not equal. GROUP: {} OLD: {} NEW: {} ",
                     this.groupName,
                     infoOld.toString(),
                     infoNew.toString());
+
+                // 将新的缓存起来
                 this.channelInfoTable.put(infoNew.getChannel(), infoNew);
             }
         }
 
         this.lastUpdateTimestamp = System.currentTimeMillis();
+
+        /// 设置更新时间
         infoOld.setLastUpdateTimestamp(this.lastUpdateTimestamp);
 
         return updated;
@@ -152,6 +172,8 @@ public class ConsumerGroupInfo {
         boolean updated = false;
 
         for (SubscriptionData sub : subList) {
+
+            // 根据topic获取订阅信息
             SubscriptionData old = this.subscriptionTable.get(sub.getTopic());
             if (old == null) {
                 SubscriptionData prev = this.subscriptionTable.putIfAbsent(sub.getTopic(), sub);
@@ -162,7 +184,7 @@ public class ConsumerGroupInfo {
                         sub.toString());
                 }
             } else if (sub.getSubVersion() > old.getSubVersion()) {
-                if (this.consumeType == ConsumeType.CONSUME_PASSIVELY) {
+                if (this.consumeType == ConsumeType.CONSUME_PASSIVELY) {// push
                     log.info("subscription changed, group: {} OLD: {} NEW: {}",
                         this.groupName,
                         old.toString(),

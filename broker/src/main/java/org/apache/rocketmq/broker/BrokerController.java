@@ -152,6 +152,8 @@ public class BrokerController {
     private ExecutorService heartbeatExecutor;
     private ExecutorService consumerManageExecutor;
     private ExecutorService endTransactionExecutor;
+
+    // 定期更新 master ha server
     private boolean updateMasterHAServerAddrPeriodically = false;
     private BrokerStats brokerStats;
     private InetSocketAddress storeHost;
@@ -329,7 +331,7 @@ public class BrokerController {
                 new ThreadFactoryImpl("SendMessageThread_"));
 
             this.pullMessageExecutor = new BrokerFixedThreadPoolExecutor(
-                this.brokerConfig.getPullMessageThreadPoolNums(),
+                this.brokerConfig.getPullMessageThreadPoolNums(),///16+cput*2
                 this.brokerConfig.getPullMessageThreadPoolNums(),
                 1000 * 60,
                 TimeUnit.MILLISECONDS,
@@ -391,6 +393,8 @@ public class BrokerController {
                 }
             }, initialDelay, period, TimeUnit.MILLISECONDS);
 
+
+            /// 每5s 持久话一波  消费offset
             this.scheduledExecutorService.scheduleAtFixedRate(new Runnable() {
                 @Override
                 public void run() {
@@ -400,8 +404,12 @@ public class BrokerController {
                         log.error("schedule persist consumerOffset error.", e);
                     }
                 }
+                //// 1000 * 5;
             }, 1000 * 10, this.brokerConfig.getFlushConsumerOffsetInterval(), TimeUnit.MILLISECONDS);
 
+
+
+            // 每10s 持久话一波 consumerFilter
             this.scheduledExecutorService.scheduleAtFixedRate(new Runnable() {
                 @Override
                 public void run() {
@@ -414,6 +422,9 @@ public class BrokerController {
                 // 10s
             }, 1000 * 10, 1000 * 10, TimeUnit.MILLISECONDS);
 
+
+
+            /// 3分钟
             this.scheduledExecutorService.scheduleAtFixedRate(new Runnable() {
                 @Override
                 public void run() {
@@ -425,6 +436,9 @@ public class BrokerController {
                 }
             }, 3, 3, TimeUnit.MINUTES);
 
+
+
+            /// 1s 一次  printWaterMark 就是打印日志
             this.scheduledExecutorService.scheduleAtFixedRate(new Runnable() {
                 @Override
                 public void run() {
@@ -436,6 +450,7 @@ public class BrokerController {
                 }
             }, 10, 1, TimeUnit.SECONDS);
 
+            /// 1分钟
             this.scheduledExecutorService.scheduleAtFixedRate(new Runnable() {
 
                 @Override
@@ -447,10 +462,17 @@ public class BrokerController {
                     }
                 }
             }, 1000 * 10, 1000 * 60, TimeUnit.MILLISECONDS);
+
+
+
             // nameserv
             if (this.brokerConfig.getNamesrvAddr() != null) {
+                // 更新一下nameserv 地址
                 this.brokerOuterAPI.updateNameServerAddressList(this.brokerConfig.getNamesrvAddr());
                 log.info("Set user specified name server address: {}", this.brokerConfig.getNamesrvAddr());
+
+
+
             } else if (this.brokerConfig.isFetchNamesrvAddrByAddressServer()) {
                 this.scheduledExecutorService.scheduleAtFixedRate(new Runnable() {
 
@@ -557,12 +579,15 @@ public class BrokerController {
         this.transactionalMessageCheckService = new TransactionalMessageCheckService(this);
     }
 
+    /**
+     * 初始化 acl
+     */
     private void initialAcl() {
         if (!this.brokerConfig.isAclEnable()) {
             log.info("The broker dose not enable acl");
             return;
         }
-
+        // 使用spi 获取AccessValidator
         List<AccessValidator> accessValidators = ServiceProvider.load(ServiceProvider.ACL_VALIDATOR_ID, AccessValidator.class);
         if (accessValidators == null || accessValidators.isEmpty()) {
             log.info("The broker dose not load the AccessValidator");
@@ -571,6 +596,9 @@ public class BrokerController {
 
         for (AccessValidator accessValidator: accessValidators) {
             final AccessValidator validator = accessValidator;
+
+
+            // 注册到 serverRPCHook里面
             this.registerServerRPCHook(new RPCHook() {
 
                 @Override
@@ -593,6 +621,8 @@ public class BrokerController {
         if (rpcHooks == null || rpcHooks.isEmpty()) {
             return;
         }
+
+        // 注册rpc hook
         for (RPCHook rpcHook: rpcHooks) {
             this.registerServerRPCHook(rpcHook);
         }
@@ -620,6 +650,9 @@ public class BrokerController {
 
         //拉取消息处理器
         this.remotingServer.registerProcessor(RequestCode.PULL_MESSAGE, this.pullMessageProcessor, this.pullMessageExecutor);
+
+
+        /// 注册消费消息的钩子
         this.pullMessageProcessor.registerConsumeMessageHook(consumeMessageHookList);
 
         /**
@@ -929,19 +962,23 @@ public class BrokerController {
         }
 
 
-
+        // 进行注册
         this.registerBrokerAll(true, false, true);
 
+
+        // 定时发送心跳
         this.scheduledExecutorService.scheduleAtFixedRate(new Runnable() {
 
-            @Override
-            public void run() {
-                try {
-                    BrokerController.this.registerBrokerAll(true, false, brokerConfig.isForceRegister());
-                } catch (Throwable e) {
-                    log.error("registerBrokerAll Exception", e);
+                @Override
+                public void run() {
+                    try {
+                        BrokerController.this.registerBrokerAll(true, false, brokerConfig.isForceRegister());
+                    } catch (Throwable e) {
+                        log.error("registerBrokerAll Exception", e);
+                    }
                 }
-            }
+
+            ///  30s
         }, 1000 * 10, Math.max(10000, Math.min(brokerConfig.getRegisterNameServerPeriod(), 60000)), TimeUnit.MILLISECONDS);
 
         if (this.brokerStatsManager != null) {
@@ -973,11 +1010,24 @@ public class BrokerController {
         doRegisterBrokerAll(true, false, topicConfigSerializeWrapper);
     }
 
-    public synchronized void registerBrokerAll(final boolean checkOrderConfig, boolean oneway, boolean forceRegister) {
-        TopicConfigSerializeWrapper topicConfigWrapper = this.getTopicConfigManager().buildTopicConfigSerializeWrapper();
 
+    /**
+     * 注册
+     * @param checkOrderConfig 检查顺序配置
+     * @param oneway  是否使用单向发送
+     * @param forceRegister
+     */
+    public synchronized void registerBrokerAll(final boolean checkOrderConfig, boolean oneway, boolean forceRegister) {
+
+
+
+        // build出来一个TopicConfigSerializeWrapper
+        TopicConfigSerializeWrapper topicConfigWrapper = this.getTopicConfigManager().buildTopicConfigSerializeWrapper();
+        // 不是可写或者不是可读
         if (!PermName.isWriteable(this.getBrokerConfig().getBrokerPermission())
             || !PermName.isReadable(this.getBrokerConfig().getBrokerPermission())) {
+
+
             ConcurrentHashMap<String, TopicConfig> topicConfigTable = new ConcurrentHashMap<String, TopicConfig>();
             for (TopicConfig topicConfig : topicConfigWrapper.getTopicConfigTable().values()) {
                 TopicConfig tmp =
@@ -988,17 +1038,30 @@ public class BrokerController {
             topicConfigWrapper.setTopicConfigTable(topicConfigTable);
         }
 
+        // 判断是否需要注册
         if (forceRegister || needRegister(this.brokerConfig.getBrokerClusterName(),
             this.getBrokerAddr(),
             this.brokerConfig.getBrokerName(),
             this.brokerConfig.getBrokerId(),
             this.brokerConfig.getRegisterBrokerTimeoutMills())) {
+
+
+
+            // 进行注册
             doRegisterBrokerAll(checkOrderConfig, oneway, topicConfigWrapper);
         }
     }
 
+    /**
+     * 进行注册
+     * @param checkOrderConfig
+     * @param oneway
+     * @param topicConfigWrapper
+     */
     private void doRegisterBrokerAll(boolean checkOrderConfig, boolean oneway,
         TopicConfigSerializeWrapper topicConfigWrapper) {
+
+        // 注册broker
         List<RegisterBrokerResult> registerBrokerResultList = this.brokerOuterAPI.registerBrokerAll(
             this.brokerConfig.getBrokerClusterName(),
             this.getBrokerAddr(),
@@ -1006,20 +1069,30 @@ public class BrokerController {
             this.brokerConfig.getBrokerId(),
             this.getHAServerAddr(),
             topicConfigWrapper,
+            ///构建filter server 列表
             this.filterServerManager.buildNewFilterServerList(),
             oneway,
+
+            // 注册超时时间 ， 默认是6s
             this.brokerConfig.getRegisterBrokerTimeoutMills(),
+
+            // 是否压缩 默认是false
             this.brokerConfig.isCompressedRegister());
 
+
         if (registerBrokerResultList.size() > 0) {
+
+            // 拿出一个来
             RegisterBrokerResult registerBrokerResult = registerBrokerResultList.get(0);
             if (registerBrokerResult != null) {
+
+                // 默认是false
                 if (this.updateMasterHAServerAddrPeriodically && registerBrokerResult.getHaServerAddr() != null) {
                     this.messageStore.updateHaMasterAddress(registerBrokerResult.getHaServerAddr());
                 }
-
+                // 设置master addr
                 this.slaveSynchronize.setMasterAddr(registerBrokerResult.getMasterAddr());
-
+                ///更新
                 if (checkOrderConfig) {
                     this.getTopicConfigManager().updateOrderTopicConfig(registerBrokerResult.getKvTable());
                 }
@@ -1027,6 +1100,15 @@ public class BrokerController {
         }
     }
 
+    /**
+     * 是否需要注册
+     * @param clusterName 集群名字
+     * @param brokerAddr broker的地址
+     * @param brokerName  broker name
+     * @param brokerId   broker id
+     * @param timeoutMills  超时
+     * @return
+     */
     private boolean needRegister(final String clusterName,
         final String brokerAddr,
         final String brokerName,
